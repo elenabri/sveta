@@ -2611,62 +2611,85 @@ function renderProducts() {
         );
 
 
-    let products =
-        state.products.filter(
-            product => {
+let products =
+    state.products.filter(
+        product => {
 
-                /*
-                 * Поиск по имени:
-                 * название СОДЕРЖИТ строку.
-                 */
+            /*
+             * Поиск:
+             * название СОДЕРЖИТ строку
+             * ИЛИ артикул СОДЕРЖИТ строку
+             * ИЛИ код СОДЕРЖИТ строку
+             */
 
-                if (
-                    search &&
-                    !normalize(
+            if (search) {
+
+                const name =
+                    normalize(
                         product.name
-                    ).includes(
-                        search
-                    )
-                ) {
+                    );
+
+                const article =
+                    normalize(
+                        product.article
+                    );
+
+                const code =
+                    normalize(
+                        product.code
+                    );
+
+                const found =
+                    name.includes(search) ||
+                    article.includes(search) ||
+                    code.includes(search);
+
+                if (!found) {
 
                     return false;
 
                 }
 
-
-                const stock =
-                    Number(
-                        state.stock[
-                            product.id
-                        ] ||
-                        0
-                    );
+            }
 
 
-                if (
-                    state.stockFilter ===
-                    'positive'
-                ) {
+            /*
+             * Фильтр по остатку
+             */
 
-                    return stock > 0;
-
-                }
-
-
-                if (
-                    state.stockFilter ===
-                    'zero'
-                ) {
-
-                    return stock === 0;
-
-                }
+            const stock =
+                Number(
+                    state.stock[
+                        product.id
+                    ] ||
+                    0
+                );
 
 
-                return true;
+            if (
+                state.stockFilter ===
+                'positive'
+            ) {
+
+                return stock > 0;
 
             }
-        );
+
+
+            if (
+                state.stockFilter ===
+                'zero'
+            ) {
+
+                return stock === 0;
+
+            }
+
+
+            return true;
+
+        }
+    );
 
 
     $('productCount')
