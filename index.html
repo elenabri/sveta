@@ -1,0 +1,3614 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+>
+
+<title>Создание документов</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+
+    margin: 0;
+
+    font-family:
+        Arial,
+        sans-serif;
+
+    background:
+        #f5f6f8;
+
+    color:
+        #222;
+
+    padding-bottom:
+        78px;
+}
+
+header {
+
+    height:
+        60px;
+
+    background:
+        white;
+
+    border-bottom:
+        1px solid #ddd;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    padding:
+        0 22px;
+
+    gap:
+        20px;
+
+    position:
+        sticky;
+
+    top:
+        0;
+
+    z-index:
+        20;
+}
+
+header h1 {
+
+    margin: 0;
+
+    font-size:
+        20px;
+}
+
+#status {
+
+    color:
+        #777;
+
+    font-size:
+        13px;
+}
+
+.layout {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        330px minmax(0,1fr);
+
+    min-height:
+        calc(100vh - 60px);
+}
+
+.sidebar {
+
+    background:
+        white;
+
+    border-right:
+        1px solid #ddd;
+
+    padding:
+        15px;
+
+    overflow-y:
+        auto;
+
+    position:
+        sticky;
+
+    top:
+        60px;
+
+    height:
+        calc(100vh - 60px);
+}
+
+.main {
+
+    padding:
+        18px;
+
+    min-width:
+        0;
+}
+
+.search {
+
+    width:
+        100%;
+
+    padding:
+        10px;
+
+    border:
+        1px solid #ccc;
+
+    border-radius:
+        7px;
+
+    margin-bottom:
+        12px;
+}
+
+.tree-row {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        6px;
+
+    padding:
+        7px;
+
+    border-radius:
+        7px;
+
+    cursor:
+        pointer;
+}
+
+.tree-row:hover {
+
+    background:
+        #f0f1f3;
+}
+
+.tree-row.active {
+
+    background:
+        #e4e6e9;
+
+    font-weight:
+        bold;
+}
+
+.tree-children {
+
+    margin-left:
+        20px;
+}
+
+.panel {
+
+    background:
+        white;
+
+    border:
+        1px solid #ddd;
+
+    border-radius:
+        10px;
+
+    padding:
+        16px;
+
+    margin-bottom:
+        15px;
+}
+
+.group-title {
+
+    font-size:
+        21px;
+
+    font-weight:
+        bold;
+}
+
+.toolbar {
+
+    margin-top:
+        12px;
+
+    display:
+        flex;
+
+    gap:
+        10px;
+
+    align-items:
+        center;
+
+    flex-wrap:
+        wrap;
+}
+
+button {
+
+    border:
+        0;
+
+    border-radius:
+        7px;
+
+    padding:
+        9px 15px;
+
+    background:
+        #222;
+
+    color:
+        white;
+
+    cursor:
+        pointer;
+}
+
+button.secondary {
+
+    background:
+        #e5e7eb;
+
+    color:
+        #222;
+}
+
+button.filter-active {
+
+    background:
+        #222;
+
+    color:
+        white;
+}
+
+button:hover {
+
+    opacity:
+        .9;
+}
+
+.table-wrap {
+
+    overflow-x:
+        auto;
+}
+
+table {
+
+    width:
+        100%;
+
+    min-width:
+        850px;
+
+    border-collapse:
+        collapse;
+
+    table-layout:
+        fixed;
+}
+
+th,
+td {
+
+    padding:
+        9px;
+
+    border-bottom:
+        1px solid #eee;
+
+    text-align:
+        left;
+
+    font-size:
+        13px;
+
+    vertical-align:
+        middle;
+}
+
+th {
+
+    background:
+        #f0f1f3;
+
+    position:
+        sticky;
+
+    top:
+        60px;
+
+    z-index:
+        5;
+}
+
+th:nth-child(1),
+td:nth-child(1) {
+
+    width:
+        45px;
+
+    text-align:
+        center;
+}
+
+th:nth-child(2),
+td:nth-child(2) {
+
+    width:
+        30%;
+}
+
+th:nth-child(3),
+td:nth-child(3) {
+
+    width:
+        180px;
+}
+
+th:nth-child(4),
+td:nth-child(4) {
+
+    width:
+        160px;
+}
+
+th:nth-child(5),
+td:nth-child(5) {
+
+    width:
+        110px;
+}
+
+th:nth-child(6),
+td:nth-child(6) {
+
+    width:
+        120px;
+}
+
+.code {
+
+    font-weight:
+        bold;
+
+    overflow:
+        hidden;
+
+    text-overflow:
+        ellipsis;
+
+    white-space:
+        nowrap;
+}
+
+.stock-good {
+
+    color:
+        #147a35;
+
+    font-weight:
+        bold;
+}
+
+.stock-bad {
+
+    color:
+        #b42318;
+
+    font-weight:
+        bold;
+}
+
+.qty {
+
+    width:
+        90px;
+
+    padding:
+        7px;
+
+    border:
+        1px solid #ccc;
+
+    border-radius:
+        6px;
+}
+
+.actions {
+
+    display:
+        flex;
+
+    gap:
+        10px;
+
+    flex-wrap:
+        wrap;
+}
+
+.bottom-actions {
+
+    position:
+        fixed;
+
+    left:
+        0;
+
+    right:
+        0;
+
+    bottom:
+        0;
+
+    height:
+        68px;
+
+    background:
+        white;
+
+    border-top:
+        1px solid #ccc;
+
+    box-shadow:
+        0 -3px 12px rgba(0,0,0,.08);
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    gap:
+        10px;
+
+    z-index:
+        50;
+}
+
+.bottom-actions button {
+
+    min-width:
+        180px;
+}
+
+.modal-bg {
+
+    position:
+        fixed;
+
+    inset:
+        0;
+
+    background:
+        rgba(0,0,0,.45);
+
+    display:
+        none;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    padding:
+        20px;
+
+    z-index:
+        100;
+}
+
+.modal-bg.open {
+
+    display:
+        flex;
+}
+
+.modal {
+
+    background:
+        white;
+
+    width:
+        min(760px,100%);
+
+    max-height:
+        90vh;
+
+    overflow-y:
+        auto;
+
+    border-radius:
+        12px;
+
+    padding:
+        22px;
+}
+
+.modal h2 {
+
+    margin-top:
+        0;
+}
+
+.form-grid {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap:
+        12px;
+}
+
+.form-grid label {
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    gap:
+        5px;
+
+    font-size:
+        13px;
+}
+
+input,
+select {
+
+    padding:
+        9px;
+
+    border:
+        1px solid #ccc;
+
+    border-radius:
+        7px;
+
+    font-size:
+        14px;
+
+    background:
+        white;
+}
+
+.full {
+
+    grid-column:
+        1 / -1;
+}
+
+.warning {
+
+    background:
+        #fff4ce;
+
+    border:
+        1px solid #ffe08a;
+
+    padding:
+        12px;
+
+    border-radius:
+        8px;
+
+    margin:
+        12px 0;
+}
+
+.success {
+
+    background:
+        #e7f7ec;
+
+    border:
+        1px solid #b8e0c1;
+
+    padding:
+        12px;
+
+    border-radius:
+        8px;
+
+    margin:
+        12px 0;
+}
+
+.error {
+
+    background:
+        #fdecec;
+
+    border:
+        1px solid #f0b5b5;
+
+    padding:
+        12px;
+
+    border-radius:
+        8px;
+
+    margin:
+        12px 0;
+}
+
+.material-input {
+
+    display:
+        flex;
+
+    gap:
+        8px;
+}
+
+.material-input input {
+
+    flex:
+        1;
+}
+
+.material {
+
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    gap:
+        8px;
+
+    background:
+        #eef0f2;
+
+    padding:
+        7px 10px;
+
+    border-radius:
+        20px;
+
+    margin:
+        4px;
+}
+
+.material button {
+
+    padding:
+        2px 7px;
+
+    background:
+        #777;
+}
+
+.counterparty-search {
+
+    width:
+        100%;
+
+    margin-bottom:
+        6px;
+}
+
+.counterparty-results {
+
+    max-height:
+        180px;
+
+    overflow-y:
+        auto;
+
+    border:
+        1px solid #ddd;
+
+    border-radius:
+        7px;
+
+    display:
+        none;
+
+    background:
+        white;
+}
+
+.counterparty-results.open {
+
+    display:
+        block;
+}
+
+.counterparty-result {
+
+    padding:
+        9px;
+
+    cursor:
+        pointer;
+
+    border-bottom:
+        1px solid #eee;
+}
+
+.counterparty-result:hover {
+
+    background:
+        #f2f3f5;
+}
+
+.selected-counterparty {
+
+    margin-top:
+        6px;
+
+    padding:
+        8px;
+
+    background:
+        #eef6ff;
+
+    border-radius:
+        7px;
+}
+
+.stock-filters {
+
+    display:
+        flex;
+
+    gap:
+        6px;
+
+    flex-wrap:
+        wrap;
+}
+
+@media(max-width:800px) {
+
+    .layout {
+
+        grid-template-columns:
+            1fr;
+    }
+
+    .sidebar {
+
+        position:
+            static;
+
+        height:
+            320px;
+
+        border-right:
+            0;
+
+        border-bottom:
+            1px solid #ddd;
+    }
+
+    .form-grid {
+
+        grid-template-columns:
+            1fr;
+    }
+
+    .bottom-actions {
+
+        height:
+            auto;
+
+        padding:
+            8px;
+
+        flex-wrap:
+            wrap;
+    }
+
+    .bottom-actions button {
+
+        min-width:
+            0;
+
+        flex:
+            1;
+    }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<h1>
+Создание документов
+</h1>
+
+<span id="status">
+Загрузка...
+</span>
+
+</header>
+
+
+<div class="layout">
+
+
+<aside class="sidebar">
+
+<input
+    class="search"
+    id="groupSearch"
+    placeholder="Поиск группы..."
+>
+
+<div id="tree"></div>
+
+</aside>
+
+
+<main class="main">
+
+<div
+    class="panel"
+    id="empty"
+>
+Выберите группу или подгруппу.
+</div>
+
+
+<div
+    id="workspace"
+    style="display:none"
+>
+
+
+<div class="panel">
+
+<div
+    class="group-title"
+    id="groupTitle"
+></div>
+
+<div class="toolbar">
+
+<label>
+
+<input
+    type="checkbox"
+    id="includeChildren"
+    checked
+>
+
+включая подгруппы
+
+</label>
+
+<button
+    class="secondary"
+    onclick="loadProducts()"
+>
+↻ Обновить
+</button>
+
+<div class="stock-filters">
+
+<button
+    id="filterAll"
+    onclick="setStockFilter('all')"
+>
+Все
+</button>
+
+<button
+    id="filterPositive"
+    class="secondary"
+    onclick="setStockFilter('positive')"
+>
+Остаток > 0
+</button>
+
+<button
+    id="filterZero"
+    class="secondary"
+    onclick="setStockFilter('zero')"
+>
+Остаток = 0
+</button>
+
+</div>
+
+<span id="productCount"></span>
+
+</div>
+
+</div>
+
+
+<div class="panel">
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>✓</th>
+
+<th>Товар</th>
+
+<th>Код</th>
+
+<th>Артикул</th>
+
+<th>Остаток</th>
+
+<th>Количество</th>
+
+</tr>
+
+</thead>
+
+<tbody
+    id="productTable"
+></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+
+</div>
+
+</main>
+
+</div>
+
+
+<!-- ======================================================
+     НИЖНЯЯ ПАНЕЛЬ
+====================================================== -->
+
+<div class="bottom-actions">
+
+<button
+    onclick="openDocument('processing')"
+>
+Техзадание
+</button>
+
+<button
+    onclick="openDocument('demand')"
+>
+Отгрузка
+</button>
+
+<button
+    onclick="openDocument('purchase')"
+>
+Заказ поставщику
+</button>
+
+</div>
+
+
+<!-- ======================================================
+     ДОКУМЕНТ
+====================================================== -->
+
+<div
+    class="modal-bg"
+    id="documentModal"
+>
+
+<div class="modal">
+
+<h2 id="documentTitle">
+Документ
+</h2>
+
+<div class="form-grid">
+
+<label>
+
+Дата
+
+<input
+    type="date"
+    id="documentDate"
+>
+
+</label>
+
+
+<label>
+
+Организация
+
+<select
+    id="organization"
+></select>
+
+</label>
+
+
+<label
+    id="counterpartyBlock"
+>
+
+Контрагент
+
+<input
+    class="counterparty-search"
+    id="counterpartySearch"
+    placeholder="Начните вводить название..."
+    autocomplete="off"
+>
+
+<div
+    class="counterparty-results"
+    id="counterpartyResults"
+></div>
+
+<div
+    class="selected-counterparty"
+    id="selectedCounterparty"
+    style="display:none"
+></div>
+
+</label>
+
+
+<label>
+
+Склад
+
+<select
+    id="store"
+></select>
+
+</label>
+
+
+<label
+    id="materialsStoreBlock"
+>
+
+Склад материалов
+
+<select
+    id="materialsStore"
+></select>
+
+</label>
+
+
+<label
+    id="productsStoreBlock"
+>
+
+Склад продукции
+
+<select
+    id="productsStore"
+></select>
+
+</label>
+
+</div>
+
+
+<div
+    style="margin-top:15px"
+    id="documentItems"
+></div>
+
+
+<div
+    class="actions"
+    style="margin-top:20px"
+>
+
+<button
+    class="secondary"
+    onclick="closeModal('documentModal')"
+>
+Отмена
+</button>
+
+<button
+    onclick="continueDocument()"
+>
+Продолжить
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ======================================================
+     MISSING
+====================================================== -->
+
+<div
+    class="modal-bg"
+    id="missingModal"
+>
+
+<div class="modal">
+
+<h2>
+Не найдены товары без -z
+</h2>
+
+<div class="warning">
+
+Все отсутствующие товары будут созданы
+из выбранных карточек.
+
+Папку нужно выбрать один раз.
+
+</div>
+
+<div id="missingProducts"></div>
+
+<label
+    style="
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+        margin-top:15px;
+    "
+>
+
+Папка для новых товаров
+
+<select
+    id="newProductFolder"
+></select>
+
+</label>
+
+<div
+    class="actions"
+    style="margin-top:20px"
+>
+
+<button
+    class="secondary"
+    onclick="closeModal('missingModal')"
+>
+Отмена
+</button>
+
+<button
+    onclick="createMissingProducts()"
+>
+Создать все товары
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ======================================================
+     MATERIALS
+====================================================== -->
+
+<div
+    class="modal-bg"
+    id="materialsModal"
+>
+
+<div class="modal">
+
+<h2>
+Материалы для техкарт
+</h2>
+
+<div class="warning">
+
+Основной материал каждого выбранного товара —
+его карточка с <b>-z</b>.
+
+Добавьте дополнительные материалы:
+цепочка, коробка, бирка и т.д.
+
+</div>
+
+<div class="material-input">
+
+<input
+    id="materialCode"
+    placeholder="Код товара в МойСклад"
+>
+
+<button
+    onclick="addMaterial()"
+>
+Добавить
+</button>
+
+</div>
+
+<div
+    id="materialsList"
+    style="margin-top:10px"
+></div>
+
+<div
+    class="actions"
+    style="margin-top:20px"
+>
+
+<button
+    class="secondary"
+    onclick="closeModal('materialsModal')"
+>
+Отмена
+</button>
+
+<button
+    onclick="prepareProcessing()"
+>
+Создать / обновить техкарты
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ======================================================
+     AFTER PROCESSING
+====================================================== -->
+
+<div
+    class="modal-bg"
+    id="afterProcessingModal"
+>
+
+<div class="modal">
+
+<h2>
+Техзадание создано ✓
+</h2>
+
+<div
+    class="success"
+    id="processingResult"
+></div>
+
+<div class="warning">
+
+Сделать сразу Отгрузку?
+
+<br><br>
+
+В Отгрузку пойдут товары
+<b>без -z</b>
+в тех же количествах.
+
+</div>
+
+<div class="actions">
+
+<button
+    class="secondary"
+    onclick="closeModal('afterProcessingModal')"
+>
+Нет
+</button>
+
+<button
+    onclick="createDemandAfterProcessing()"
+>
+Да, создать Отгрузку
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ======================================================
+     MESSAGE
+====================================================== -->
+
+<div
+    class="modal-bg"
+    id="messageModal"
+>
+
+<div class="modal">
+
+<h2 id="messageTitle">
+Результат
+</h2>
+
+<div id="messageBody"></div>
+
+<div
+    class="actions"
+    style="margin-top:20px"
+>
+
+<button
+    onclick="closeModal('messageModal')"
+>
+Закрыть
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+let state = {
+
+    groups: [],
+
+    products: [],
+
+    stock: {},
+
+    organizations: [],
+
+    counterparties: [],
+
+    stores: [],
+
+    productFolders: [],
+
+    planFolders: [],
+
+    selectedGroupId: null,
+
+    selectedProducts: [],
+
+    documentType: null,
+
+    prepared: [],
+
+    extraMaterials: [],
+
+    processingData: null,
+
+    stockFilter: 'all',
+
+    selectedCounterpartyId: null,
+
+    selectedCounterpartyName: ''
+
+};
+
+
+// ======================================================
+// API
+// ======================================================
+
+async function request(
+    url,
+    options = {}
+) {
+
+    const response =
+        await fetch(
+            url,
+            {
+                headers: {
+
+                    'Content-Type':
+                        'application/json'
+
+                },
+
+                ...options
+            }
+        );
+
+    const data =
+        await response.json();
+
+    if (
+        !response.ok ||
+        data.success === false
+    ) {
+
+        throw new Error(
+
+            typeof data.error ===
+                'string'
+
+                ? data.error
+
+                : JSON.stringify(
+                    data.error ||
+                    data
+                )
+
+        );
+
+    }
+
+    return data;
+}
+
+
+function $(id) {
+
+    return document.getElementById(id);
+
+}
+
+
+function esc(value) {
+
+    return String(
+        value ?? ''
+    )
+        .replaceAll(
+            '&',
+            '&amp;'
+        )
+        .replaceAll(
+            '<',
+            '&lt;'
+        )
+        .replaceAll(
+            '>',
+            '&gt;'
+        )
+        .replaceAll(
+            '"',
+            '&quot;'
+        );
+
+}
+
+
+function normalize(value) {
+
+    return String(
+        value ?? ''
+    )
+        .trim()
+        .toLowerCase();
+
+}
+
+
+// ======================================================
+// INIT
+// ======================================================
+
+async function init() {
+
+    try {
+
+        const [
+            groups,
+            refs
+        ] = await Promise.all([
+
+            request(
+                '/api/groups'
+            ),
+
+            request(
+                '/api/references'
+            )
+
+        ]);
+
+        state.groups =
+            groups.groups || [];
+
+        state.organizations =
+            refs.organizations || [];
+
+        state.counterparties =
+            refs.counterparties || [];
+
+        state.stores =
+            refs.stores || [];
+
+        state.productFolders =
+            refs.productFolders || [];
+
+        state.planFolders =
+            refs.planFolders || [];
+
+        fillSelect(
+            'organization',
+            state.organizations
+        );
+
+        fillSelect(
+            'store',
+            state.stores
+        );
+
+        fillSelect(
+            'materialsStore',
+            state.stores
+        );
+
+        fillSelect(
+            'productsStore',
+            state.stores
+        );
+
+        fillSelect(
+            'newProductFolder',
+            state.productFolders
+        );
+
+        const today =
+            new Date()
+                .toISOString()
+                .slice(
+                    0,
+                    10
+                );
+
+        $('documentDate').value =
+            today;
+
+        selectDefaultJewelryStores();
+
+        renderTree();
+
+        $('status').textContent =
+            'Готово';
+
+    } catch (error) {
+
+        $('status').textContent =
+            'Ошибка';
+
+        showMessage(
+            'Ошибка',
+            esc(
+                error.message
+            )
+        );
+
+    }
+
+}
+
+
+// ======================================================
+// SELECT
+// ======================================================
+
+function fillSelect(
+    id,
+    items
+) {
+
+    const select =
+        $(id);
+
+    select.innerHTML =
+        '<option value="">Выберите...</option>';
+
+    for (
+        const item
+        of items
+    ) {
+
+        const option =
+            document.createElement(
+                'option'
+            );
+
+        option.value =
+            item.id;
+
+        option.textContent =
+            item.name;
+
+        select.appendChild(
+            option
+        );
+
+    }
+
+}
+
+
+function findStoreByName(
+    name
+) {
+
+    return state.stores.find(
+        x =>
+            normalize(
+                x.name
+            ) ===
+            normalize(name)
+    );
+
+}
+
+
+function selectDefaultJewelryStores() {
+
+    const jewelry =
+        findStoreByName(
+            'Бижутерия'
+        );
+
+    if (!jewelry)
+        return;
+
+    $('materialsStore').value =
+        jewelry.id;
+
+    $('productsStore').value =
+        jewelry.id;
+
+    $('store').value =
+        jewelry.id;
+
+}
+
+
+// ======================================================
+// GROUP TREE
+// ======================================================
+
+function renderTree() {
+
+    const search =
+        normalize(
+            $('groupSearch').value
+        );
+
+    $('tree').innerHTML =
+        '';
+
+    const roots =
+        state.groups.filter(
+            x =>
+                !x.parentId
+        );
+
+    for (
+        const root
+        of roots
+    ) {
+
+        const node =
+            renderGroup(
+                root,
+                search
+            );
+
+        if (node) {
+
+            $('tree')
+                .appendChild(
+                    node
+                );
+
+        }
+
+    }
+
+}
+
+
+function renderGroup(
+    group,
+    search
+) {
+
+    const children =
+        state.groups.filter(
+            x =>
+                x.parentId ===
+                group.id
+        );
+
+    const match =
+        !search ||
+        normalize(
+            group.name
+        ).includes(
+            search
+        );
+
+    const childNodes =
+        [];
+
+    for (
+        const child
+        of children
+    ) {
+
+        const node =
+            renderGroup(
+                child,
+                search
+            );
+
+        if (node) {
+
+            childNodes.push(
+                node
+            );
+
+        }
+
+    }
+
+    if (
+        !match &&
+        !childNodes.length
+    ) {
+
+        return null;
+
+    }
+
+    const wrapper =
+        document.createElement(
+            'div'
+        );
+
+    const row =
+        document.createElement(
+            'div'
+        );
+
+    row.className =
+        'tree-row' +
+        (
+            state.selectedGroupId ===
+            group.id
+                ? ' active'
+                : ''
+        );
+
+    row.innerHTML = `
+
+        <span style="width:18px">
+
+            ${
+                children.length
+                    ? '▶'
+                    : ''
+            }
+
+        </span>
+
+        <span>
+            📁
+        </span>
+
+        <span>
+            ${esc(group.name)}
+        </span>
+
+    `;
+
+    row.onclick =
+        () =>
+            selectGroup(
+                group.id
+            );
+
+    wrapper.appendChild(
+        row
+    );
+
+    if (
+        childNodes.length
+    ) {
+
+        const childBox =
+            document.createElement(
+                'div'
+            );
+
+        childBox.className =
+            'tree-children';
+
+        childNodes.forEach(
+            childNode =>
+                childBox.appendChild(
+                    childNode
+                )
+        );
+
+        wrapper.appendChild(
+            childBox
+        );
+
+    }
+
+    return wrapper;
+
+}
+
+
+$('groupSearch')
+    .addEventListener(
+        'input',
+        renderTree
+    );
+
+
+// ======================================================
+// SELECT GROUP
+// ======================================================
+
+async function selectGroup(
+    groupId
+) {
+
+    state.selectedGroupId =
+        groupId;
+
+    renderTree();
+
+    $('empty').style.display =
+        'none';
+
+    $('workspace').style.display =
+        'block';
+
+    const group =
+        state.groups.find(
+            x =>
+                x.id ===
+                groupId
+        );
+
+    $('groupTitle')
+        .textContent =
+            group?.name ||
+            '';
+
+    await loadProducts();
+
+}
+
+
+// ======================================================
+// PRODUCTS
+// ======================================================
+
+async function loadProducts() {
+
+    if (
+        !state.selectedGroupId
+    )
+        return;
+
+    try {
+
+        const children =
+            $('includeChildren')
+                .checked;
+
+        const data =
+            await request(
+
+                `/api/groups/${state.selectedGroupId}/products` +
+                `?children=${children}`
+
+            );
+
+        state.products =
+            data.products || [];
+
+        const stockData =
+            await request(
+                '/api/stock',
+                {
+
+                    method:
+                        'POST',
+
+                    body:
+                        JSON.stringify({
+
+                            productIds:
+                                state.products
+                                    .map(
+                                        p =>
+                                            p.id
+                                    ),
+
+                            storeId:
+                                $('store')
+                                    .value ||
+                                null
+
+                        })
+
+                }
+            );
+
+        state.stock =
+            stockData.stock || {};
+
+        renderProducts();
+
+    } catch (error) {
+
+        showMessage(
+            'Ошибка загрузки',
+            esc(
+                error.message
+            )
+        );
+
+    }
+
+}
+
+
+function setStockFilter(
+    filter
+) {
+
+    state.stockFilter =
+        filter;
+
+    $('filterAll')
+        .className =
+            filter === 'all'
+                ? ''
+                : 'secondary';
+
+    $('filterPositive')
+        .className =
+            filter === 'positive'
+                ? ''
+                : 'secondary';
+
+    $('filterZero')
+        .className =
+            filter === 'zero'
+                ? ''
+                : 'secondary';
+
+    renderProducts();
+
+}
+
+
+function renderProducts() {
+
+    let products =
+        state.products.filter(
+            product => {
+
+                const stock =
+                    Number(
+                        state.stock[
+                            product.id
+                        ] ||
+                        0
+                    );
+
+                if (
+                    state.stockFilter ===
+                    'positive'
+                ) {
+
+                    return stock > 0;
+
+                }
+
+                if (
+                    state.stockFilter ===
+                    'zero'
+                ) {
+
+                    return stock === 0;
+
+                }
+
+                return true;
+
+            }
+        );
+
+    $('productCount')
+        .textContent =
+            `Товаров: ${products.length}`;
+
+    const tbody =
+        $('productTable');
+
+    tbody.innerHTML =
+        '';
+
+    for (
+        const product
+        of products
+    ) {
+
+        const selected =
+            state.selectedProducts.find(
+                x =>
+                    x.productId ===
+                    product.id
+            );
+
+        const available =
+            Number(
+                state.stock[
+                    product.id
+                ] ||
+                0
+            );
+
+        const tr =
+            document.createElement(
+                'tr'
+            );
+
+        tr.innerHTML = `
+
+            <td>
+
+                <input
+                    type="checkbox"
+                    data-check="${esc(product.id)}"
+                    ${
+                        selected
+                            ? 'checked'
+                            : ''
+                    }
+                >
+
+            </td>
+
+            <td>
+
+                ${esc(
+                    product.name
+                )}
+
+            </td>
+
+            <td class="code">
+
+                ${esc(
+                    product.code
+                )}
+
+            </td>
+
+            <td>
+
+                ${esc(
+                    product.article
+                )}
+
+            </td>
+
+            <td
+                class="${
+                    available > 0
+                        ? 'stock-good'
+                        : 'stock-bad'
+                }"
+            >
+
+                ${available}
+
+            </td>
+
+            <td>
+
+                <input
+                    class="qty"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value="${
+                        selected?.quantity ||
+                        0
+                    }"
+                    data-qty="${esc(product.id)}"
+                >
+
+            </td>
+
+        `;
+
+        tbody.appendChild(
+            tr
+        );
+
+    }
+
+    tbody
+        .querySelectorAll(
+            '[data-check]'
+        )
+        .forEach(
+            input =>
+                input.addEventListener(
+                    'change',
+                    syncSelected
+                )
+        );
+
+    tbody
+        .querySelectorAll(
+            '[data-qty]'
+        )
+        .forEach(
+            input =>
+                input.addEventListener(
+                    'input',
+                    syncSelected
+                )
+        );
+
+}
+
+
+// ======================================================
+// SELECTED PRODUCTS
+// ======================================================
+
+function syncSelected() {
+
+    const result =
+        [];
+
+    for (
+        const product
+        of state.products
+    ) {
+
+        const check =
+            document.querySelector(
+                `[data-check="${CSS.escape(product.id)}"]`
+            );
+
+        const qty =
+            document.querySelector(
+                `[data-qty="${CSS.escape(product.id)}"]`
+            );
+
+        if (
+            check?.checked &&
+            Number(
+                qty?.value ||
+                0
+            ) > 0
+        ) {
+
+            result.push({
+
+                productId:
+                    product.id,
+
+                quantity:
+                    Number(
+                        qty.value
+                    )
+
+            });
+
+        }
+
+    }
+
+    state.selectedProducts =
+        result;
+
+}
+
+
+function getSelected() {
+
+    syncSelected();
+
+    return state.selectedProducts;
+
+}
+
+
+// ======================================================
+// DOCUMENT
+// ======================================================
+
+function openDocument(
+    type
+) {
+
+    const items =
+        getSelected();
+
+    if (!items.length) {
+
+        showMessage(
+            'Нет товаров',
+            'Выберите товары и укажите количество.'
+        );
+
+        return;
+
+    }
+
+    state.documentType =
+        type;
+
+    const titles = {
+
+        processing:
+            'Техзадание',
+
+        demand:
+            'Отгрузка',
+
+        purchase:
+            'Заказ поставщику'
+
+    };
+
+    $('documentTitle')
+        .textContent =
+            titles[type];
+
+    const isProcessing =
+        type === 'processing';
+
+    $('counterpartyBlock')
+        .style.display =
+            isProcessing
+                ? 'none'
+                : 'flex';
+
+    $('materialsStoreBlock')
+        .style.display =
+            isProcessing
+                ? 'flex'
+                : 'none';
+
+    $('productsStoreBlock')
+        .style.display =
+            isProcessing
+                ? 'flex'
+                : 'none';
+
+    $('store')
+        .parentElement
+        .style.display =
+            isProcessing
+                ? 'none'
+                : 'flex';
+
+    if (isProcessing) {
+
+        selectDefaultJewelryStores();
+
+    }
+
+    state.selectedCounterpartyId =
+        null;
+
+    state.selectedCounterpartyName =
+        '';
+
+    $('counterpartySearch')
+        .value =
+            '';
+
+    $('counterpartyResults')
+        .innerHTML =
+            '';
+
+    $('counterpartyResults')
+        .classList
+        .remove('open');
+
+    $('selectedCounterparty')
+        .style.display =
+            'none';
+
+    $('documentItems')
+        .innerHTML =
+            items.map(
+                item => {
+
+                    const product =
+                        state.products.find(
+                            p =>
+                                p.id ===
+                                item.productId
+                        );
+
+                    return `
+
+                        <div
+                            style="margin:6px 0"
+                        >
+
+                            <b>
+                                ${esc(
+                                    product?.code ||
+                                    product?.name ||
+                                    ''
+                                )}
+                            </b>
+
+                            — ${item.quantity} шт.
+
+                        </div>
+
+                    `;
+
+                }
+            ).join('');
+
+    openModal(
+        'documentModal'
+    );
+
+}
+
+
+// ======================================================
+// COUNTERPARTY SEARCH
+// ======================================================
+
+let counterpartyTimer = null;
+
+$('counterpartySearch')
+    .addEventListener(
+        'input',
+        () => {
+
+            clearTimeout(
+                counterpartyTimer
+            );
+
+            counterpartyTimer =
+                setTimeout(
+                    searchCounterparties,
+                    250
+                );
+
+        }
+    );
+
+
+async function searchCounterparties() {
+
+    const q =
+        $('counterpartySearch')
+            .value
+            .trim();
+
+    if (!q) {
+
+        $('counterpartyResults')
+            .classList
+            .remove('open');
+
+        return;
+
+    }
+
+    try {
+
+        const data =
+            await request(
+                `/api/counterparties/search?q=${encodeURIComponent(q)}`
+            );
+
+        const list =
+            $('counterpartyResults');
+
+        list.innerHTML =
+            '';
+
+        for (
+            const item
+            of data.counterparties
+        ) {
+
+            const div =
+                document.createElement(
+                    'div'
+                );
+
+            div.className =
+                'counterparty-result';
+
+            div.innerHTML = `
+
+                <b>
+                    ${esc(
+                        item.name
+                    )}
+                </b>
+
+                ${
+                    item.code
+                        ? `<br><small>${esc(item.code)}</small>`
+                        : ''
+                }
+
+            `;
+
+            div.onclick =
+                () =>
+                    selectCounterparty(
+                        item
+                    );
+
+            list.appendChild(
+                div
+            );
+
+        }
+
+        list.classList.add(
+            'open'
+        );
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+    }
+
+}
+
+
+function selectCounterparty(
+    item
+) {
+
+    state.selectedCounterpartyId =
+        item.id;
+
+    state.selectedCounterpartyName =
+        item.name;
+
+    $('counterpartySearch')
+        .value =
+            item.name;
+
+    $('selectedCounterparty')
+        .style.display =
+            'block';
+
+    $('selectedCounterparty')
+        .textContent =
+            `Выбран: ${item.name}`;
+
+    $('counterpartyResults')
+        .classList
+        .remove('open');
+
+}
+
+
+// ======================================================
+// CONTINUE
+// ======================================================
+
+async function continueDocument() {
+
+    const items =
+        getSelected();
+
+    if (
+        !$('documentDate').value
+    ) {
+
+        alert(
+            'Выберите дату'
+        );
+
+        return;
+
+    }
+
+    if (
+        !$('organization').value
+    ) {
+
+        alert(
+            'Выберите организацию'
+        );
+
+        return;
+
+    }
+
+    if (
+        state.documentType ===
+        'processing'
+    ) {
+
+        if (
+            !$('materialsStore').value
+        ) {
+
+            alert(
+                'Выберите склад материалов'
+            );
+
+            return;
+
+        }
+
+        if (
+            !$('productsStore').value
+        ) {
+
+            alert(
+                'Выберите склад продукции'
+            );
+
+            return;
+
+        }
+
+    } else {
+
+        if (
+            !$('store').value
+        ) {
+
+            alert(
+                'Выберите склад'
+            );
+
+            return;
+
+        }
+
+        if (
+            !state.selectedCounterpartyId
+        ) {
+
+            alert(
+                'Выберите контрагента'
+            );
+
+            return;
+
+        }
+
+    }
+
+    closeModal(
+        'documentModal'
+    );
+
+    if (
+        state.documentType ===
+        'demand'
+    ) {
+
+        await createDemand(
+            items
+        );
+
+        return;
+
+    }
+
+    if (
+        state.documentType ===
+        'purchase'
+    ) {
+
+        await createPurchase(
+            items
+        );
+
+        return;
+
+    }
+
+    await startProcessing(
+        items
+    );
+
+}
+
+
+// ======================================================
+// PROCESSING START
+// ======================================================
+
+async function startProcessing(
+    items
+) {
+
+    try {
+
+        const data =
+            await request(
+                '/api/check-target-products',
+                {
+
+                    method:
+                        'POST',
+
+                    body:
+                        JSON.stringify({
+                            items
+                        })
+
+                }
+            );
+
+        state.prepared =
+            data.items;
+
+        const missing =
+            data.items.filter(
+                x =>
+                    !x.targetId
+            );
+
+        if (
+            missing.length
+        ) {
+
+            $('missingProducts')
+                .innerHTML =
+                    missing
+                        .map(
+                            x => `
+
+                                <div
+                                    style="
+                                        margin:8px 0
+                                    "
+                                >
+
+                                    <b>
+                                        ${esc(
+                                            x.targetCode
+                                        )}
+                                    </b>
+
+                                    ←
+
+                                    ${esc(
+                                        x.sourceCode
+                                    )}
+
+                                </div>
+
+                            `
+                        )
+                        .join('');
+
+            openModal(
+                'missingModal'
+            );
+
+            return;
+
+        }
+
+        openMaterials();
+
+    } catch (error) {
+
+        showMessage(
+            'Ошибка',
+            esc(
+                error.message
+            )
+        );
+
+    }
+
+}
+
+
+// ======================================================
+// CREATE MISSING
+// ======================================================
+
+async function createMissingProducts() {
+
+    try {
+
+        const folderId =
+            $('newProductFolder')
+                .value;
+
+        if (!folderId) {
+
+            alert(
+                'Выберите папку'
+            );
+
+            return;
+
+        }
+
+        const missing =
+            state.prepared.filter(
+                x =>
+                    !x.targetId
+            );
+
+        const result =
+            await request(
+                '/api/create-missing-products',
+                {
+
+                    method:
+                        'POST',
+
+                    body:
+                        JSON.stringify({
+
+                            folderId,
+
+                            items:
+                                missing.map(
+                                    x => ({
+
+                                        sourceId:
+                                            x.sourceId,
+
+                                        targetCode:
+                                            x.targetCode
+
+                                    })
+                                )
+
+                        })
+
+                }
+            );
+
+        if (
+            result.errors?.length
+        ) {
+
+            showMessage(
+                'Ошибка',
+                result.errors
+                    .map(
+                        x =>
+                            `${esc(x.code)}: ${esc(JSON.stringify(x.error))}`
+                    )
+                    .join('<br>')
+            );
+
+            return;
+
+        }
+
+        const check =
+            await request(
+                '/api/check-target-products',
+                {
+
+                    method:
+                        'POST',
+
+                    body:
+                        JSON.stringify({
+
+                            items:
+                                state.selectedProducts
+
+                        })
+
+                }
+            );
+
+        state.prepared =
+            check.items;
+
+        closeModal(
+            'missingModal'
+        );
+
+        openMaterials();
+
+    } catch (error) {
+
+        showMessage(
+            'Ошибка создания товаров',
+            esc(
+                error.message
+            )
+        );
+
+    }
+
+}
+
+
+// ======================================================
+// MATERIALS
+// ======================================================
+
+function openMaterials() {
+
+    state.extraMaterials =
+        [];
+
+    $('materialCode')
+        .value =
+        '';
+
+    renderMaterials();
+
+    openModal(
+        'materialsModal'
+    );
+
+}
+
+
+async function addMaterial() {
+
+    const code =
+        $('materialCode')
+            .value
+            .trim();
+
+    if (!code)
+        return;
+
+    try {
+
+        const catalog =
+            await request(
+                '/api/catalog'
+            );
+
+        const product =
+            catalog.products.find(
+                p =>
+                    normalize(
+                        p.code
+                    ) ===
+                    normalize(code)
+            );
+
+        if (!product) {
+
+            alert(
+                `Товар с кодом "${code}" не найден.`
+            );
+
+            return;
+
+        }
+
+        if (
+            state.extraMaterials.some(
+                x =>
+                    x.id ===
+                    product.id
+            )
+        ) {
+
+            return;
+
+        }
+
+        state.extraMaterials.push(
+            product
+        );
+
+        $('materialCode')
+            .value =
+            '';
+
+        renderMaterials();
+
+    } catch (error) {
+
+        alert(
+            error.message
+        );
+
+    }
+
+}
+
+
+function renderMaterials() {
+
+    $('materialsList')
+        .innerHTML =
+
+        state.extraMaterials.length
+
+            ?
+
+            state.extraMaterials
+                .map(
+                    p => `
+
+                        <span class="material">
+
+                            ${esc(
+                                p.code
+                            )}
+
+                            <button
+                                onclick="removeMaterial('${p.id}')"
+                            >
+                                ×
+                            </button>
+
+                        </span>
+
+                    `
+                )
+                .join('')
+
+            :
+
+            '<span style="color:#888">Материалы не добавлены.</span>';
+
+}
+
+
+function removeMaterial(
+    id
+) {
+
+    state.extraMaterials =
+        state.extraMaterials.filter(
+            p =>
+                p.id !== id
+        );
+
+    renderMaterials();
+
+}
+
+
+// ======================================================
+// PREPARE PROCESSING
+// ======================================================
+
+async function prepareProcessing() {
+
+    try {
+
+        const data =
+            await request(
+                '/api/prepare-processing',
+                {
+
+                    method:
+                        'POST',
+
+                    body:
+                        JSON.stringify({
+
+                            items:
+                                state.prepared.map(
+                                    x => ({
+
+                                        productId:
+                                            x.sourceId,
+
+                                        quantity:
+                                            x.quantity
+
+                                    })
+                                ),
+
+                            planFolderId:
+                                state.planFolders[0]?.id ||
+                                null,
+
+                            extraMaterialIds:
+                                state.extraMaterials
+                                    .map(
+                                        x =>
+                                            x.id
+                                    )
+
+                        })
+
+                }
+            );
+
+        state.processingData =
+            data;
+
+        closeModal(
+            'materialsModal'
+        );
+
+        // ------------------------------------------------
+        // Производственное задание
+        // ------------------------------------------------
+
+        const order =
+            await request(
+                '/api/create-processing-order',
+                {
+
+                    method:
+                        'POST',
+
+                    body:
+                        JSON.stringify({
+
+                            date:
+                                $('documentDate')
+                                    .value,
+
+                            organizationId:
+                                $('organization')
+                                    .value,
+
+                            materialsStoreId:
+                                $('materialsStore')
+                                    .value,
+
+                            productsStoreId:
+                                $('productsStore')
+                                    .value,
+
+                            items:
+                                data.prepared.map(
+                                    x => ({
+
+                                        planId:
+                                            x.planId,
+
+                                        quantity:
+                                            x.quantity
+
+                                    })
+                                )
+
+                        })
+
+                }
+            );
+
+        $('processingResult')
+            .innerHTML = `
+
+                <div>
+
+                    Производственное задание создано.
+
+                </div>
+
+                <br>
+
+                ${
+                    data.prepared
+                        .map(
+                            x => `
+
+                                <div>
+
+                                    <b>
+                                        ${esc(
+                                            x.targetCode
+                                        )}
+                                    </b>
+
+                                    —
+                                    ${x.quantity}
+                                    шт.
+
+                                </div>
+
+                            `
+                        )
+                        .join('')
+                }
+
+            `;
+
+        state.processingData =
+            {
+                ...data,
+                order
+            };
+
+        openModal(
+            'afterProcessingModal'
+        );
+
+    } catch (error) {
+
+        showMessage(
+            'Ошибка создания Техзадания',
+            esc(
+                error.message
+            )
+        );
+
+    }
+
+}
+
+
+// ======================================================
+// DEMAND
+// ======================================================
+
+async function createDemand(
+    items
+) {
+
+    try {
+
+        const data =
+            await request(
+                '/api/create-demand',
+                {
+
+                    method:
+                        'POST',
+
+                    body:
+                        JSON.stringify({
+
+                            date:
+                                $('documentDate')
+                                    .value,
+
+                            organizationId:
+                                $('organization')
+                                    .value,
+
+                            counterpartyId:
+                                state.selectedCounterpartyId,
+
+                            storeId:
+                                $('store')
+                                    .value,
+
+                            items
+
+                        })
+
+                }
+            );
+
+        showMessage(
+
+            'Отгрузка создана ✓',
+
+            `
+
+                <div class="success">
+
+                    Отгрузка успешно создана.
+
+                    ${
+                        data.document?.code
+                            ? `<br>№ ${esc(data.document.code)}`
+                            : ''
+                    }
+
+                </div>
+
+            `
+
+        );
+
+    } catch (error) {
+
+        showMessage(
+            'Ошибка Отгрузки',
+            esc(
+                error.message
+            )
+        );
+
+    }
+
+}
+
+
+// ======================================================
+// PURCHASE
+// ======================================================
+
+async function createPurchase(
+    items
+) {
+
+    try {
+
+        const data =
+            await request(
+                '/api/create-purchase-order',
+                {
+
+                    method:
+                        'POST',
+
+                    body:
+                        JSON.stringify({
+
+                            date:
+                                $('documentDate')
+                                    .value,
+
+                            organizationId:
+                                $('organization')
+                                    .value,
+
+                            counterpartyId:
+                                state.selectedCounterpartyId,
+
+                            storeId:
+                                $('store')
+                                    .value,
+
+                            items
+
+                        })
+
+                }
+            );
+
+        showMessage(
+
+            'Заказ поставщику создан ✓',
+
+            `
+
+                <div class="success">
+
+                    Заказ поставщику успешно создан.
+
+                    ${
+                        data.document?.code
+                            ? `<br>№ ${esc(data.document.code)}`
+                            : ''
+                    }
+
+                </div>
+
+            `
+
+        );
+
+    } catch (error) {
+
+        showMessage(
+            'Ошибка Заказа поставщику',
+            esc(
+                error.message
+            )
+        );
+
+    }
+
+}
+
+
+// ======================================================
+// DEMAND AFTER PROCESSING
+// ======================================================
+
+async function createDemandAfterProcessing() {
+
+    closeModal(
+        'afterProcessingModal'
+    );
+
+    const items =
+        state.prepared.map(
+            x => ({
+
+                productId:
+                    x.targetId,
+
+                quantity:
+                    x.quantity
+
+            })
+        );
+
+    // Контрагент должен быть выбран заранее.
+    // Если нет — открываем форму отгрузки.
+
+    if (
+        !state.selectedCounterpartyId
+    ) {
+
+        state.documentType =
+            'demand';
+
+        $('documentTitle')
+            .textContent =
+                'Отгрузка';
+
+        $('counterpartyBlock')
+            .style.display =
+                'flex';
+
+        $('materialsStoreBlock')
+            .style.display =
+                'none';
+
+        $('productsStoreBlock')
+            .style.display =
+                'none';
+
+        $('store')
+            .parentElement
+            .style.display =
+                'flex';
+
+        $('documentItems')
+            .innerHTML =
+                items.map(
+                    item => {
+
+                        const product =
+                            state.products.find(
+                                p =>
+                                    p.id ===
+                                    item.productId
+                            );
+
+                        return `
+
+                            <div>
+
+                                <b>
+                                    ${esc(
+                                        product?.code ||
+                                        item.productId
+                                    )}
+                                </b>
+
+                                —
+                                ${item.quantity}
+                                шт.
+
+                            </div>
+
+                        `;
+
+                    }
+                ).join('');
+
+        state.pendingDemandItems =
+            items;
+
+        openModal(
+            'documentModal'
+        );
+
+        return;
+
+    }
+
+    await createDemand(
+        items
+    );
+
+}
+
+
+// ======================================================
+// MODAL
+// ======================================================
+
+function openModal(
+    id
+) {
+
+    $(id)
+        .classList
+        .add('open');
+
+}
+
+
+function closeModal(
+    id
+) {
+
+    $(id)
+        .classList
+        .remove('open');
+
+}
+
+
+function showMessage(
+    title,
+    body
+) {
+
+    $('messageTitle')
+        .textContent =
+            title;
+
+    $('messageBody')
+        .innerHTML =
+            body;
+
+    openModal(
+        'messageModal'
+    );
+
+}
+
+
+// ======================================================
+// SPECIAL CASE:
+// CONTINUE AFTER PROCESSING -> DEMAND
+// ======================================================
+
+const originalContinueDocument =
+    continueDocument;
+
+continueDocument =
+    async function() {
+
+        if (
+            state.documentType ===
+            'demand' &&
+            state.pendingDemandItems
+        ) {
+
+            const items =
+                state.pendingDemandItems;
+
+            if (
+                !state.selectedCounterpartyId
+            ) {
+
+                alert(
+                    'Выберите контрагента'
+                );
+
+                return;
+
+            }
+
+            if (
+                !$('organization').value
+            ) {
+
+                alert(
+                    'Выберите организацию'
+                );
+
+                return;
+
+            }
+
+            if (
+                !$('store').value
+            ) {
+
+                alert(
+                    'Выберите склад'
+                );
+
+                return;
+
+            }
+
+            closeModal(
+                'documentModal'
+            );
+
+            state.pendingDemandItems =
+                null;
+
+            await createDemand(
+                items
+            );
+
+            return;
+
+        }
+
+        await originalContinueDocument();
+
+    };
+
+
+// ======================================================
+// ENTER IN MATERIAL
+// ======================================================
+
+$('materialCode')
+    .addEventListener(
+        'keydown',
+        event => {
+
+            if (
+                event.key ===
+                'Enter'
+            ) {
+
+                event.preventDefault();
+
+                addMaterial();
+
+            }
+
+        }
+    );
+
+
+// ======================================================
+// START
+// ======================================================
+
+init();
+
+</script>
+
+</body>
+
+</html>
