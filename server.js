@@ -965,6 +965,711 @@ app.post(
 
 
 // ============================================================
+// ПОЛНОЕ КОПИРОВАНИЕ КАРТОЧКИ ТОВАРА БЕЗ -Z
+// ============================================================
+//
+// Логика:
+//
+// 1. Находим исходную карточку XXX-Z
+// 2. Получаем ПОЛНУЮ карточку отдельным GET
+// 3. Берём все данные карточки
+// 4. Убираем только системные / вычисляемые поля
+// 5. Меняем ТОЛЬКО code: XXX-Z -> XXX
+// 6. Создаём новую карточку
+// 7. Копируем все изображения
+// 8. Копируем все файлы
+//
+// Остальные данные карточки:
+// - название
+// - артикул
+// - описание
+// - группа
+// - единица измерения
+// - НДС
+// - штрихкоды
+// - цены
+// - упаковки
+// - доп. поля
+// - характеристики
+// - вес
+// - объём
+// - поставщик
+// - страна
+// - маркировка
+// - и остальные передаваемые поля
+//
+// копируются автоматически.
+//
+// НЕ копируются:
+// - id
+// - meta
+// - accountId
+// - created
+// - updated
+// - owner
+// - externalCode
+// - остатки
+// - резервы
+//
+// ============================================================
+
+
+// ============================================================
+// ПОЛУЧЕНИЕ ПОЛНОЙ КАРТОЧКИ ТОВАРА
+// ============================================================
+
+async function getFullProduct(productId) {
+
+    const response =
+        await requestApi(
+            'GET',
+            `/entity/product/${productId}`
+        );
+
+    return response.data;
+}
+
+
+// ============================================================
+// ПОЛУЧЕНИЕ ВСЕХ ИЗОБРАЖЕНИЙ ТОВАРА
+// ============================================================
+
+async function getProductImages(productId) {
+
+    const response =
+        await requestApi(
+            'GET',
+            `/entity/product/${productId}/images?limit=1000`
+        );
+
+    return response.data?.rows || [];
+}
+
+
+// ============================================================
+// ПОЛУЧЕНИЕ ВСЕХ ФАЙЛОВ ТОВАРА
+// ============================================================
+
+async function getProductFiles(productId) {
+
+    const response =
+        await requestApi(
+            'GET',
+            `/entity/product/${productId}/files?limit=1000`
+        );
+
+    return response.data?.rows || [];
+}
+
+
+// ============================================================
+// ПОЛУЧЕНИЕ СОДЕРЖИМОГО ФАЙЛА / ИЗОБРАЖЕНИЯ
+// ============================================================
+//
+// У разных объектов МойСклад ссылка на скачивание может
+// находиться в downloadHref / downloadhref / href.
+//
+// Поэтому проверяем несколько вариантов.
+// ============================================================
+
+function getDownloadHref(entity) {
+
+    return (
+        entity?.meta?.downloadHref ||
+        entity?.meta?.downloadhref ||
+        entity?.downloadHref ||
+        entity?.downloadhref ||
+        entity?.meta?.href ||
+        null
+    );
+}
+
+
+// ============================================================
+// ПОДГОТОВКА ПОЛНОЙ КОПИИ КАРТОЧКИ
+// ============================================================
+
+function prepareProductCopy(
+    source,
+    targetCode
+) {
+
+    const payload = {};
+
+
+    // --------------------------------------------------------
+    // Поля, которые принадлежат СТАРОЙ карточке
+    // и не должны переходить в новую.
+    // --------------------------------------------------------
+
+    const excludedFields =
+        new Set([
+
+            // ID товара
+            'id',
+
+            // Метаданные старого товара
+            'meta',
+
+            // Аккаунт
+            'accountId',
+
+            // Системные даты
+            'created',
+            'updated',
+
+            // Внешний системный идентификатор
+            'externalCode',
+
+            // Владелец
+            'owner',
+
+            // Служебный sync ID
+            'syncID',
+
+            // Остатки
+            'stock',
+
+            // Резерв
+            'reserve',
+
+            // Неснижаемый остаток
+            'minimumStock',
+
+            // Вычисляемые значения
+            'stockDays',
+
+            // Некоторые служебные поля,
+            // которые могут присутствовать в расширенном ответе
+            'discountProhibited',
+
+            // Не копируем готовую ссылку на изображения.
+            // Изображения копируются отдельно.
+            'image',
+            'images',
+
+            // Файлы тоже копируются отдельно.
+            'files'
+
+        ]);
+
+
+    // --------------------------------------------------------
+    // КОПИРУЕМ ВСЕ ОСТАЛЬНЫЕ ПОЛЯ
+    // --------------------------------------------------------
+
+    for (
+        const [key, value]
+        of Object.entries(source)
+    ) {
+
+        if (
+            excludedFields.has(key)
+        ) {
+            continue;
+        }
+
+
+        if (
+            value === undefined
+        ) {
+            continue;
+        }
+
+
+        payload[key] = value;
+    }
+
+
+    // --------------------------------------------------------
+    // ЕДИНСТВЕННОЕ ИЗМЕНЯЕМОЕ ПОЛЕ
+    // --------------------------------------------------------
+
+    payload.code =
+        targetCode;
+
+
+    return payload;
+}
+
+
+// ============================================================
+// КОПИРОВАНИЕ ИЗОБРАЖЕНИЙ
+// ============================================================
+
+async function copyProductImages(
+    sourceProductId,
+    targetProductId
+) {
+
+    console.log('');
+    console.log(
+        '--------------------------------------------------'
+    );
+
+    console.log(
+        `🖼 Копирование изображений: ${sourceProductId} -> ${targetProductId}`
+    );
+
+
+    const images =
+        await getProductImages(
+            sourceProductId
+        );
+
+
+    console.log(
+        `🖼 Найдено изображений: ${images.length}`
+    );
+
+
+    const result = {
+
+        copied: 0,
+
+        errors: []
+
+    };
+
+
+    if (!images.length) {
+
+        console.log(
+            '🖼 Изображений нет'
+        );
+
+        return result;
+    }
+
+
+    // --------------------------------------------------------
+    // В МойСклад разрешено максимум 10 изображений товара.
+    // --------------------------------------------------------
+
+    const imagesToCopy =
+        images.slice(
+            0,
+            10
+        );
+
+
+    if (
+        images.length > 10
+    ) {
+
+        console.log(
+            `⚠️ Найдено ${images.length} изображений. ` +
+            `МойСклад позволяет максимум 10. ` +
+            `Будут скопированы первые 10.`
+        );
+
+    }
+
+
+    // --------------------------------------------------------
+    // Каждое изображение отдельно
+    // --------------------------------------------------------
+
+    for (
+        let i = 0;
+        i < imagesToCopy.length;
+        i++
+    ) {
+
+        const image =
+            imagesToCopy[i];
+
+
+        try {
+
+            const downloadHref =
+                getDownloadHref(
+                    image
+                );
+
+
+            if (!downloadHref) {
+
+                throw new Error(
+                    'Не найдена ссылка для скачивания изображения'
+                );
+
+            }
+
+
+            console.log(
+                `🖼 [${i + 1}/${imagesToCopy.length}] ` +
+                `Получаем изображение`
+            );
+
+
+            // ------------------------------------------------
+            // Получаем бинарное содержимое
+            // ------------------------------------------------
+
+            const response =
+                await requestApi(
+                    'GET',
+                    downloadHref,
+                    undefined,
+                    {
+                        responseType:
+                            'arraybuffer'
+                    }
+                );
+
+
+            const buffer =
+                Buffer.from(
+                    response.data
+                );
+
+
+            const content =
+                buffer.toString(
+                    'base64'
+                );
+
+
+            // ------------------------------------------------
+            // Определяем имя файла
+            // ------------------------------------------------
+
+            let filename =
+                image.filename ||
+                image.name ||
+                `image-${i + 1}.jpg`;
+
+
+            // Если имя без расширения,
+            // попробуем определить формат по Content-Type.
+            if (
+                !/\.[a-z0-9]{2,5}$/i.test(
+                    filename
+                )
+            ) {
+
+                const contentType =
+                    response.headers?.[
+                        'content-type'
+                    ];
+
+
+                if (
+                    contentType ===
+                    'image/png'
+                ) {
+
+                    filename +=
+                        '.png';
+
+                } else {
+
+                    filename +=
+                        '.jpg';
+
+                }
+
+            }
+
+
+            // ------------------------------------------------
+            // Загружаем изображение в новую карточку
+            // ------------------------------------------------
+
+            await requestApi(
+                'POST',
+                `/entity/product/${targetProductId}/images`,
+                {
+                    filename,
+                    content
+                }
+            );
+
+
+            result.copied++;
+
+
+            console.log(
+                `✅ Изображение ${i + 1} скопировано: ${filename}`
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                `❌ Ошибка изображения ${i + 1}:`,
+                errorData(error)
+            );
+
+
+            result.errors.push({
+
+                index:
+                    i + 1,
+
+                filename:
+                    image?.filename ||
+                    image?.name ||
+                    null,
+
+                error:
+                    errorData(error)
+
+            });
+
+        }
+
+    }
+
+
+    return result;
+}
+
+
+// ============================================================
+// КОПИРОВАНИЕ ФАЙЛОВ
+// ============================================================
+//
+// Это не изображения.
+// Если в карточке есть прикреплённые файлы,
+// они также копируются отдельно.
+//
+// API МойСклад позволяет добавлять до 10 файлов
+// одним запросом.
+// ============================================================
+
+async function copyProductFiles(
+    sourceProductId,
+    targetProductId
+) {
+
+    console.log('');
+    console.log(
+        '--------------------------------------------------'
+    );
+
+    console.log(
+        `📎 Копирование файлов: ${sourceProductId} -> ${targetProductId}`
+    );
+
+
+    const files =
+        await getProductFiles(
+            sourceProductId
+        );
+
+
+    console.log(
+        `📎 Найдено файлов: ${files.length}`
+    );
+
+
+    const result = {
+
+        copied: 0,
+
+        errors: []
+
+    };
+
+
+    if (!files.length) {
+
+        console.log(
+            '📎 Файлов нет'
+        );
+
+        return result;
+    }
+
+
+    // --------------------------------------------------------
+    // Собираем файлы пачками по 10
+    // --------------------------------------------------------
+
+    for (
+        let start = 0;
+        start < files.length;
+        start += 10
+    ) {
+
+        const batch =
+            files.slice(
+                start,
+                start + 10
+            );
+
+
+        const upload =
+            [];
+
+
+        // ----------------------------------------------------
+        // Получаем содержимое каждого файла
+        // ----------------------------------------------------
+
+        for (
+            let i = 0;
+            i < batch.length;
+            i++
+        ) {
+
+            const file =
+                batch[i];
+
+
+            try {
+
+                const downloadHref =
+                    getDownloadHref(
+                        file
+                    );
+
+
+                if (!downloadHref) {
+
+                    throw new Error(
+                        'Не найдена ссылка для скачивания файла'
+                    );
+
+                }
+
+
+                console.log(
+                    `📎 Получаем файл ${start + i + 1}/${files.length}`
+                );
+
+
+                const response =
+                    await requestApi(
+                        'GET',
+                        downloadHref,
+                        undefined,
+                        {
+                            responseType:
+                                'arraybuffer'
+                        }
+                    );
+
+
+                const buffer =
+                    Buffer.from(
+                        response.data
+                    );
+
+
+                const content =
+                    buffer.toString(
+                        'base64'
+                    );
+
+
+                const filename =
+                    file.filename ||
+                    file.name ||
+                    `file-${start + i + 1}`;
+
+
+                upload.push({
+
+                    filename,
+
+                    content
+
+                });
+
+
+            } catch (error) {
+
+                console.error(
+                    `❌ Ошибка получения файла ${start + i + 1}:`,
+                    errorData(error)
+                );
+
+
+                result.errors.push({
+
+                    index:
+                        start + i + 1,
+
+                    filename:
+                        file?.filename ||
+                        file?.name ||
+                        null,
+
+                    error:
+                        errorData(error)
+
+                });
+
+            }
+
+        }
+
+
+        // ----------------------------------------------------
+        // Загружаем пачку
+        // ----------------------------------------------------
+
+        if (!upload.length) {
+            continue;
+        }
+
+
+        try {
+
+            await requestApi(
+                'POST',
+                `/entity/product/${targetProductId}/files`,
+                upload
+            );
+
+
+            result.copied +=
+                upload.length;
+
+
+            console.log(
+                `✅ Загружено файлов: ${upload.length}`
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                '❌ Ошибка загрузки файлов:',
+                errorData(error)
+            );
+
+
+            for (
+                const file
+                of upload
+            ) {
+
+                result.errors.push({
+
+                    filename:
+                        file.filename,
+
+                    error:
+                        errorData(error)
+
+                });
+
+            }
+
+        }
+
+    }
+
+
+    return result;
+}
+
+
+// ============================================================
 // СОЗДАНИЕ НЕДОСТАЮЩИХ ТОВАРОВ
 // ============================================================
 
@@ -979,7 +1684,10 @@ app.post(
                 folderId
             } = req.body;
 
-            if (!folderId) {
+
+            if (
+                !Array.isArray(items)
+            ) {
 
                 return res.status(400)
                     .json({
@@ -987,15 +1695,26 @@ app.post(
                         success: false,
 
                         error:
-                            'Не выбрана папка'
+                            'items должен быть массивом'
 
                     });
+
             }
+
+
+            // ------------------------------------------------
+            // Получаем список товаров
+            // ------------------------------------------------
 
             const products =
                 await getAll(
                     'product'
                 );
+
+
+            // ------------------------------------------------
+            // Индекс по ID
+            // ------------------------------------------------
 
             const byId =
                 new Map(
@@ -1007,19 +1726,27 @@ app.post(
                     )
                 );
 
+
+            // ------------------------------------------------
+            // Индекс по коду
+            // ------------------------------------------------
+
             const byCode =
                 new Map();
 
-            products.forEach(
-                p => {
 
-                    if (p.code) {
+            products.forEach(
+                product => {
+
+                    if (
+                        product.code
+                    ) {
 
                         byCode.set(
                             normalize(
-                                p.code
+                                product.code
                             ),
-                            p
+                            product
                         );
 
                     }
@@ -1027,101 +1754,228 @@ app.post(
                 }
             );
 
-            const created = [];
-            const errors = [];
+
+            const created =
+                [];
+
+            const errors =
+                [];
+
+
+            // =================================================
+            // ОБРАБАТЫВАЕМ ТОВАРЫ ПО ОДНОМУ
+            // =================================================
 
             for (
                 const item
                 of items || []
             ) {
 
-                const source =
-                    byId.get(
-                        item.sourceId
-                    );
-
-                if (!source) {
-
-                    errors.push({
-
-                        code:
-                            item.targetCode,
-
-                        error:
-                            'Исходная карточка не найдена'
-
-                    });
-
-                    continue;
-                }
-
-                const exists =
-                    byCode.get(
-                        normalize(
-                            item.targetCode
-                        )
-                    );
-
-                if (exists) {
-
-                    created.push({
-
-                        id:
-                            exists.id,
-
-                        code:
-                            exists.code,
-
-                        name:
-                            exists.name,
-
-                        alreadyExists:
-                            true
-
-                    });
-
-                    continue;
-                }
-
-                const payload = {
-
-                    name:
-                        source.name ||
-                        item.targetCode,
-
-                    code:
-                        item.targetCode,
-
-                    article:
-                        source.article ||
-                        '',
-
-                    description:
-                        source.description ||
-                        '',
-
-                    productFolder:
-                        ref(
-                            'productfolder',
-                            folderId
-                        )
-
-                };
-
-                if (
-                    source.uom?.meta
-                ) {
-
-                    payload.uom = {
-
-                        meta:
-                            source.uom.meta
-
-                    };
-
-                }
-
                 try {
+
+                    // ------------------------------------------------
+                    // Находим исходный товар
+                    // ------------------------------------------------
+
+                    const sourceShort =
+                        byId.get(
+                            item.sourceId
+                        );
+
+
+                    if (!sourceShort) {
+
+                        errors.push({
+
+                            code:
+                                item.targetCode,
+
+                            error:
+                                'Исходная карточка не найдена'
+
+                        });
+
+                        continue;
+                    }
+
+
+                    // ------------------------------------------------
+                    // Получаем ПОЛНУЮ карточку
+                    // ------------------------------------------------
+
+                    console.log('');
+                    console.log(
+                        '=================================================='
+                    );
+
+                    console.log(
+                        `📦 ПОЛНОЕ КОПИРОВАНИЕ: ${sourceShort.code}`
+                    );
+
+
+                    const source =
+                        await getFullProduct(
+                            sourceShort.id
+                        );
+
+
+                    // ------------------------------------------------
+                    // Проверяем исходный код
+                    // ------------------------------------------------
+
+                    const sourceCode =
+                        String(
+                            source.code ||
+                            sourceShort.code ||
+                            ''
+                        ).trim();
+
+
+                    // ------------------------------------------------
+                    // Новый код
+                    // XXX-Z -> XXX
+                    // ------------------------------------------------
+
+                    const targetCode =
+                        /-z$/i.test(
+                            sourceCode
+                        )
+                            ? sourceCode.slice(
+                                0,
+                                -2
+                            )
+                            : sourceCode;
+
+
+                    if (!targetCode) {
+
+                        throw new Error(
+                            'Не удалось определить новый код'
+                        );
+
+                    }
+
+
+                    console.log(
+                        `Старый код: ${sourceCode}`
+                    );
+
+                    console.log(
+                        `Новый код: ${targetCode}`
+                    );
+
+
+                    // ------------------------------------------------
+                    // Проверяем, существует ли уже такой товар
+                    // ------------------------------------------------
+
+                    const exists =
+                        byCode.get(
+                            normalize(
+                                targetCode
+                            )
+                        );
+
+
+                    if (exists) {
+
+                        console.log(
+                            `ℹ️ Товар ${targetCode} уже существует`
+                        );
+
+
+                        created.push({
+
+                            id:
+                                exists.id,
+
+                            code:
+                                exists.code,
+
+                            name:
+                                exists.name,
+
+                            alreadyExists:
+                                true,
+
+                            imagesCopied:
+                                0,
+
+                            filesCopied:
+                                0
+
+                        });
+
+
+                        continue;
+                    }
+
+
+                    // =================================================
+                    // ПОДГОТАВЛИВАЕМ ПОЛНУЮ КОПИЮ
+                    // =================================================
+
+                    const payload =
+                        prepareProductCopy(
+                            source,
+                            targetCode
+                        );
+
+
+                    // ------------------------------------------------
+                    // ВАЖНО:
+                    //
+                    // Если folderId передан старым интерфейсом,
+                    // используем его.
+                    //
+                    // Если folderId НЕ передан,
+                    // productFolder уже был скопирован
+                    // из исходной карточки.
+                    // ------------------------------------------------
+
+                    if (
+                        folderId
+                    ) {
+
+                        payload.productFolder =
+                            ref(
+                                'productfolder',
+                                folderId
+                            );
+
+                    }
+
+
+                    console.log('');
+                    console.log(
+                        `📝 Создаём новую карточку ${targetCode}`
+                    );
+
+
+                    console.log(
+                        `📋 Передаём полей: ${
+                            Object.keys(
+                                payload
+                            ).length
+                        }`
+                    );
+
+
+                    // ------------------------------------------------
+                    // Для отладки можно посмотреть поля
+                    // ------------------------------------------------
+
+                    console.log(
+                        '📋 Поля копии:',
+                        Object.keys(
+                            payload
+                        ).join(', ')
+                    );
+
+
+                    // =================================================
+                    // СОЗДАЁМ НОВУЮ КАРТОЧКУ
+                    // =================================================
 
                     const response =
                         await requestApi(
@@ -1130,8 +1984,30 @@ app.post(
                             payload
                         );
 
+
                     const product =
                         response.data;
+
+
+                    if (
+                        !product?.id
+                    ) {
+
+                        throw new Error(
+                            'МойСклад не вернул ID созданного товара'
+                        );
+
+                    }
+
+
+                    console.log(
+                        `✅ Карточка создана: ${product.id}`
+                    );
+
+
+                    // ------------------------------------------------
+                    // Добавляем в индекс
+                    // ------------------------------------------------
 
                     byCode.set(
                         normalize(
@@ -1139,6 +2015,97 @@ app.post(
                         ),
                         product
                     );
+
+
+                    byId.set(
+                        product.id,
+                        product
+                    );
+
+
+                    // =================================================
+                    // КОПИРУЕМ ИЗОБРАЖЕНИЯ
+                    // =================================================
+
+                    let imageResult = {
+
+                        copied: 0,
+
+                        errors: []
+
+                    };
+
+
+                    try {
+
+                        imageResult =
+                            await copyProductImages(
+                                source.id,
+                                product.id
+                            );
+
+
+                    } catch (error) {
+
+                        console.error(
+                            '❌ Ошибка блока копирования изображений:',
+                            errorData(error)
+                        );
+
+
+                        imageResult.errors.push({
+
+                            error:
+                                errorData(error)
+
+                        });
+
+                    }
+
+
+                    // =================================================
+                    // КОПИРУЕМ ФАЙЛЫ
+                    // =================================================
+
+                    let fileResult = {
+
+                        copied: 0,
+
+                        errors: []
+
+                    };
+
+
+                    try {
+
+                        fileResult =
+                            await copyProductFiles(
+                                source.id,
+                                product.id
+                            );
+
+
+                    } catch (error) {
+
+                        console.error(
+                            '❌ Ошибка блока копирования файлов:',
+                            errorData(error)
+                        );
+
+
+                        fileResult.errors.push({
+
+                            error:
+                                errorData(error)
+
+                        });
+
+                    }
+
+
+                    // =================================================
+                    // ФИНАЛЬНЫЙ РЕЗУЛЬТАТ
+                    // =================================================
 
                     created.push({
 
@@ -1152,11 +2119,52 @@ app.post(
                             product.name,
 
                         alreadyExists:
-                            false
+                            false,
+
+                        // ---------------------------------------------
+                        // Сколько изображений скопировано
+                        // ---------------------------------------------
+
+                        imagesCopied:
+                            imageResult.copied,
+
+                        imageErrors:
+                            imageResult.errors,
+
+                        // ---------------------------------------------
+                        // Сколько файлов скопировано
+                        // ---------------------------------------------
+
+                        filesCopied:
+                            fileResult.copied,
+
+                        fileErrors:
+                            fileResult.errors
 
                     });
 
+
+                    console.log('');
+                    console.log(
+                        `✅ ГОТОВО: ${sourceCode} -> ${targetCode}`
+                    );
+
+                    console.log(
+                        `🖼 Изображений: ${imageResult.copied}`
+                    );
+
+                    console.log(
+                        `📎 Файлов: ${fileResult.copied}`
+                    );
+
+
                 } catch (error) {
+
+                    console.error(
+                        `❌ ОШИБКА СОЗДАНИЯ ${item.targetCode}:`,
+                        errorData(error)
+                    );
+
 
                     errors.push({
 
@@ -1169,7 +2177,13 @@ app.post(
                     });
 
                 }
+
             }
+
+
+            // =================================================
+            // ОТВЕТ
+            // =================================================
 
             res.json({
 
@@ -1182,9 +2196,19 @@ app.post(
 
             });
 
+
         } catch (error) {
 
-            res.status(500).json({
+            console.error(
+                'CREATE MISSING PRODUCTS ERROR:',
+                errorData(error)
+            );
+
+
+            res.status(
+                error.response?.status ||
+                500
+            ).json({
 
                 success: false,
 
@@ -1192,7 +2216,9 @@ app.post(
                     errorData(error)
 
             });
+
         }
+
     }
 );
 
