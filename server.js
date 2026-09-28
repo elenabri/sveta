@@ -1700,168 +1700,9 @@ function prepareProductCopy(
         targetCode;
 
 
-    // Штрихкоды копируем явно. Это важно, потому что
-    // в расширенном ответе МойСклад они могут присутствовать
-    // отдельно от остальных полей карточки.
-    const barcodes =
-        extractProductBarcodes(
-            source
-        );
-
-    if (barcodes.length) {
-
-        payload.barcodes =
-            barcodes;
-
-    }
-
-
     return payload;
 }
 
-
-
-// ============================================================
-// КОПИРОВАНИЕ ШТРИХКОДОВ
-// ============================================================
-//
-// Штрихкоды явно передаются при создании новой карточки.
-// После создания дополнительно проверяем карточку и,
-// если МойСклад их не сохранил, устанавливаем их PUT-запросом.
-// ============================================================
-
-function extractProductBarcodes(source) {
-
-    const raw =
-        Array.isArray(source?.barcodes)
-            ? source.barcodes
-            : [];
-
-    return [
-        ...new Set(
-            raw
-                .map(barcode => {
-
-                    if (
-                        typeof barcode === 'string' ||
-                        typeof barcode === 'number'
-                    ) {
-                        return String(barcode).trim();
-                    }
-
-                    if (
-                        barcode &&
-                        typeof barcode === 'object'
-                    ) {
-
-                        return String(
-                            barcode.ean13 ||
-                            barcode.ean8 ||
-                            barcode.code128 ||
-                            barcode.code39 ||
-                            barcode.gs1 ||
-                            barcode.upc ||
-                            barcode.barcode ||
-                            ''
-                        ).trim();
-
-                    }
-
-                    return '';
-
-                })
-                .filter(Boolean)
-        )
-    ];
-
-}
-
-
-async function copyProductBarcodes(
-    source,
-    targetProduct
-) {
-
-    const barcodes =
-        extractProductBarcodes(
-            source
-        );
-
-    const result = {
-
-        copied: 0,
-
-        barcodes,
-
-        error: null
-
-    };
-
-    if (!barcodes.length) {
-
-        console.log(
-            '🏷 Штрихкодов у исходного товара нет'
-        );
-
-        return result;
-
-    }
-
-    try {
-
-        const current =
-            extractProductBarcodes(
-                targetProduct
-            );
-
-        const same =
-            current.length ===
-                barcodes.length &&
-            current.every(
-                barcode =>
-                    barcodes.includes(
-                        barcode
-                    )
-            );
-
-        if (!same) {
-
-            console.log(
-                `🏷 Устанавливаем ${barcodes.length} штрихкодов`
-            );
-
-            await requestApi(
-                'PUT',
-                `/entity/product/${targetProduct.id}`,
-                {
-                    barcodes
-                }
-            );
-
-        }
-
-        result.copied =
-            barcodes.length;
-
-        console.log(
-            `✅ Штрихкоды скопированы: ${barcodes.join(', ')}`
-        );
-
-    } catch (error) {
-
-        result.error =
-            errorData(error);
-
-        console.error(
-            '❌ Ошибка копирования штрихкодов:',
-            result.error
-        );
-
-    }
-
-    return result;
-
-}
 
 
 // ============================================================
@@ -2685,8 +2526,7 @@ app.post(
 
 
                     // =================================================
-                    // КОПИРУЕМ / ПРОВЕРЯЕМ ШТРИХКОДЫ
-                    // =================================================
+                                        // =================================================
 
                     const barcodeResult =
                         await copyProductBarcodes(
