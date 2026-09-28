@@ -3362,18 +3362,42 @@ app.post(
 
                 } else {
 
-                    plan =
-                        await updateSelectedPlan({
+                    // Существующую техкарту полностью пропускаем.
+                    // Никаких обновлений, удаления или добавления материалов.
+                    console.log(
+                        `Техкарта ${targetCode} уже существует — пропускаем без изменений`
+                    );
 
-                            plan,
+                    prepared.push({
 
-                            sourceMaterial:
-                                source,
+                        sourceId:
+                            source.id,
 
-                            extraMaterials
+                        sourceCode,
 
-                        });
+                        targetId:
+                            target.id,
 
+                        targetCode,
+
+                        quantity:
+                            Number(
+                                item.quantity ||
+                                0
+                            ),
+
+                        planId:
+                            plan.id,
+
+                        planExists:
+                            true,
+
+                        planStatus:
+                            'Техкарта уже существует — пропущено'
+
+                    });
+
+                    continue;
                 }
 
                 if (!plan?.id) {
