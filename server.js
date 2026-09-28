@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
+const XLSX = require('xlsx');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,7 +31,7 @@ const api = axios.create({
     }
 });
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '30mb' }));
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -804,6 +805,512 @@ app.post(
 );
 
 
+
+// ============================================================
+// ЗАГРУЗКА EXCEL ПО КОЛОНКЕ «АРТИКУЛ ПОСТАВЩИКА»
+// ============================================================
+//
+// Остальные столбцы Excel не имеют значения.
+// Обязателен только заголовок:
+// «Артикул поставщика».
+//
+// Если найден столбец количества, он используется.
+// Иначе количество = 1.
+//
+// Товары ищутся по полям product.article («Артикул») и product.code («Код товара») в МойСклад.
+// ============================================================
+
+function normalizeExcelHeader(value) {
+
+    return String(value ?? '')
+        .replace(/\u00A0/g, ' ')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+
+}
+
+
+function normalizeSupplierArticle(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return '';
+    }
+
+    // Excel иногда превращает числовой артикул в 12345.0
+    if (
+        typeof value === 'number' &&
+        Number.isInteger(value)
+    ) {
+        return String(value);
+    }
+
+    return String(value)
+        .trim()
+        .replace(/\u00A0/g, ' ')
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+
+}
+
+
+function findExcelColumn(headers, variants) {
+
+    const wanted =
+        new Set(
+            variants.map(
+                normalizeExcelHeader
+            )
+        );
+
+    return headers.findIndex(
+        header =>
+            wanted.has(
+                normalizeExcelHeader(header)
+            )
+    );
+
+}
+
+
+function parseExcelQuantity(value) {
+
+    if (
+        value === null ||
+        value === undefined ||
+        String(value).trim() === ''
+    ) {
+        return 1;
+    }
+
+    const number =
+        Number(
+            String(value)
+                .replace(/\s/g, '')
+                .replace(',', '.')
+        );
+
+    if (
+        !Number.isFinite(number) ||
+        number <= 0
+    ) {
+        return 1;
+    }
+
+    return Math.max(
+        1,
+        Math.round(number)
+    );
+
+}
+
+
+app.post(
+    '/api/import-excel',
+    async (req, res) => {
+
+        try {
+
+            const base64 =
+                req.body?.file;
+
+            if (!base64) {
+
+                return res.status(400).json({
+
+                    success: false,
+
+                    error:
+                        'Excel-файл не передан'
+
+                });
+
+            }
+
+            const buffer =
+                Buffer.from(
+                    String(base64).replace(
+                        /^data:.*?;base64,/,
+                        ''
+                    ),
+                    'base64'
+                );
+
+            if (!buffer.length) {
+
+                return res.status(400).json({
+
+                    success: false,
+
+                    error:
+                        'Excel-файл пустой'
+
+                });
+
+            }
+
+            const workbook =
+                XLSX.read(
+                    buffer,
+                    {
+                        type: 'buffer',
+                        cellDates: false,
+                        raw: true
+                    }
+                );
+
+            if (
+                !workbook.SheetNames.length
+            ) {
+
+                throw new Error(
+                    'В Excel нет листов'
+                );
+
+            }
+
+            // Ищем первый лист, в котором есть
+            // обязательный столбец «Артикул поставщика».
+            let selectedSheet = null;
+            let rows = [];
+            let headers = [];
+            let articleColumn = -1;
+            let quantityColumn = -1;
+
+            for (
+                const sheetName
+                of workbook.SheetNames
+            ) {
+
+                const sheet =
+                    workbook.Sheets[
+                        sheetName
+                    ];
+
+                const matrix =
+                    XLSX.utils.sheet_to_json(
+                        sheet,
+                        {
+                            header: 1,
+                            defval: '',
+                            raw: true
+                        }
+                    );
+
+                if (!matrix.length) {
+                    continue;
+                }
+
+                const sheetHeaders =
+                    matrix[0] || [];
+
+                const foundArticleColumn =
+                    findExcelColumn(
+                        sheetHeaders,
+                        [
+                            'Артикул поставщика'
+                        ]
+                    );
+
+                if (
+                    foundArticleColumn >= 0
+                ) {
+
+                    selectedSheet =
+                        sheetName;
+
+                    headers =
+                        sheetHeaders;
+
+                    articleColumn =
+                        foundArticleColumn;
+
+                    quantityColumn =
+                        findExcelColumn(
+                            sheetHeaders,
+                            [
+                                'Количество, шт',
+                                'Количество',
+                                'Кол-во, шт',
+                                'Кол-во',
+                                'Кол.',
+                                'Qty',
+                                'Quantity'
+                            ]
+                        );
+
+                    rows =
+                        matrix.slice(1);
+
+                    break;
+                }
+
+            }
+
+            if (
+                articleColumn < 0
+            ) {
+
+                return res.status(400).json({
+
+                    success: false,
+
+                    error:
+                        'Не найден обязательный столбец «Артикул поставщика».'
+
+                });
+
+            }
+
+            const imported = [];
+            const emptyRows = [];
+
+            for (
+                let i = 0;
+                i < rows.length;
+                i++
+            ) {
+
+                const row =
+                    rows[i] || [];
+
+                const rawArticle =
+                    row[articleColumn];
+
+                const article =
+                    String(
+                        rawArticle ?? ''
+                    ).trim();
+
+                if (!article) {
+
+                    emptyRows.push(
+                        i + 2
+                    );
+
+                    continue;
+                }
+
+                imported.push({
+
+                    row:
+                        i + 2,
+
+                    article,
+
+                    normalizedArticle:
+                        normalizeSupplierArticle(
+                            rawArticle
+                        ),
+
+                    quantity:
+                        quantityColumn >= 0
+                            ? parseExcelQuantity(
+                                row[
+                                    quantityColumn
+                                ]
+                            )
+                            : 1
+
+                });
+
+            }
+
+            const products =
+                await getAll(
+                    'product'
+                );
+
+            // «Артикул поставщика» из Excel сопоставляем сразу
+            // с двумя полями карточки МойСклад:
+            // Артикул (product.article) И Код товара (product.code).
+            const byArticle = new Map();
+            const byCode = new Map();
+
+            function addToIndex(map, key, product) {
+                if (!key) return;
+                if (!map.has(key)) map.set(key, []);
+                map.get(key).push(product);
+            }
+
+            for (const product of products) {
+                addToIndex(
+                    byArticle,
+                    normalizeSupplierArticle(product.article),
+                    product
+                );
+
+                addToIndex(
+                    byCode,
+                    normalizeSupplierArticle(product.code),
+                    product
+                );
+            }
+
+            const matched = [];
+            const notFound = [];
+            const duplicates = [];
+
+            for (
+                const item
+                of imported
+            ) {
+
+                const articleMatches =
+                    byArticle.get(item.normalizedArticle) || [];
+
+                const codeMatches =
+                    byCode.get(item.normalizedArticle) || [];
+
+                // Объединяем совпадения по Артикулу и Коду,
+                // чтобы одна карточка не попала дважды.
+                const foundMap = new Map();
+
+                for (const product of articleMatches) {
+                    foundMap.set(product.id, {
+                        product,
+                        matchedBy: 'Артикул'
+                    });
+                }
+
+                for (const product of codeMatches) {
+                    if (foundMap.has(product.id)) {
+                        foundMap.get(product.id).matchedBy =
+                            'Артикул и Код товара';
+                    } else {
+                        foundMap.set(product.id, {
+                            product,
+                            matchedBy: 'Код товара'
+                        });
+                    }
+                }
+
+                const found = [...foundMap.values()];
+
+                if (!found.length) {
+                    notFound.push({
+                        row: item.row,
+                        article: item.article
+                    });
+                    continue;
+                }
+
+                // Если один Excel-артикул соответствует нескольким
+                // карточкам — не выбираем случайную карточку.
+                if (found.length > 1) {
+                    duplicates.push({
+                        row: item.row,
+                        article: item.article,
+                        products: found.map(match => ({
+                            id: match.product.id,
+                            name: match.product.name || '',
+                            code: match.product.code || '',
+                            article: match.product.article || '',
+                            matchedBy: match.matchedBy
+                        }))
+                    });
+                    continue;
+                }
+
+                const product = found[0].product;
+
+                matched.push({
+
+                    row:
+                        item.row,
+
+                    article:
+                        item.article,
+
+                    matchedBy:
+                        found[0].matchedBy,
+
+                    quantity:
+                        item.quantity,
+
+                    product: {
+
+                        id:
+                            product.id,
+
+                        name:
+                            product.name || '',
+
+                        code:
+                            product.code || '',
+
+                        article:
+                            product.article || '',
+
+                        groupId:
+                            idFromHref(
+                                product
+                                    .productFolder
+                                    ?.meta
+                                    ?.href
+                            )
+
+                    }
+
+                });
+
+            }
+
+            res.json({
+
+                success: true,
+
+                sheet:
+                    selectedSheet,
+
+                articleColumn:
+                    headers[articleColumn],
+
+                quantityColumn:
+                    quantityColumn >= 0
+                        ? headers[quantityColumn]
+                        : null,
+
+                totalRows:
+                    imported.length,
+
+                matched,
+
+                notFound,
+
+                duplicates,
+
+                emptyRows
+
+            });
+
+        } catch (error) {
+
+            console.error(
+                'EXCEL IMPORT ERROR:',
+                errorData(error)
+            );
+
+            res.status(
+                500
+            ).json({
+
+                success: false,
+
+                error:
+                    errorData(error)
+
+            });
+
+        }
+
+    }
+);
+
+
 // ============================================================
 // ПРОВЕРКА ТОВАРОВ БЕЗ -Z
 // ============================================================
@@ -1189,7 +1696,167 @@ function prepareProductCopy(
         targetCode;
 
 
+    // Штрихкоды копируем явно. Это важно, потому что
+    // в расширенном ответе МойСклад они могут присутствовать
+    // отдельно от остальных полей карточки.
+    const barcodes =
+        extractProductBarcodes(
+            source
+        );
+
+    if (barcodes.length) {
+
+        payload.barcodes =
+            barcodes;
+
+    }
+
+
     return payload;
+}
+
+
+
+// ============================================================
+// КОПИРОВАНИЕ ШТРИХКОДОВ
+// ============================================================
+//
+// Штрихкоды явно передаются при создании новой карточки.
+// После создания дополнительно проверяем карточку и,
+// если МойСклад их не сохранил, устанавливаем их PUT-запросом.
+// ============================================================
+
+function extractProductBarcodes(source) {
+
+    const raw =
+        Array.isArray(source?.barcodes)
+            ? source.barcodes
+            : [];
+
+    return [
+        ...new Set(
+            raw
+                .map(barcode => {
+
+                    if (
+                        typeof barcode === 'string' ||
+                        typeof barcode === 'number'
+                    ) {
+                        return String(barcode).trim();
+                    }
+
+                    if (
+                        barcode &&
+                        typeof barcode === 'object'
+                    ) {
+
+                        return String(
+                            barcode.ean13 ||
+                            barcode.ean8 ||
+                            barcode.code128 ||
+                            barcode.code39 ||
+                            barcode.gs1 ||
+                            barcode.upc ||
+                            barcode.barcode ||
+                            ''
+                        ).trim();
+
+                    }
+
+                    return '';
+
+                })
+                .filter(Boolean)
+        )
+    ];
+
+}
+
+
+async function copyProductBarcodes(
+    source,
+    targetProduct
+) {
+
+    const barcodes =
+        extractProductBarcodes(
+            source
+        );
+
+    const result = {
+
+        copied: 0,
+
+        barcodes,
+
+        error: null
+
+    };
+
+    if (!barcodes.length) {
+
+        console.log(
+            '🏷 Штрихкодов у исходного товара нет'
+        );
+
+        return result;
+
+    }
+
+    try {
+
+        const current =
+            extractProductBarcodes(
+                targetProduct
+            );
+
+        const same =
+            current.length ===
+                barcodes.length &&
+            current.every(
+                barcode =>
+                    barcodes.includes(
+                        barcode
+                    )
+            );
+
+        if (!same) {
+
+            console.log(
+                `🏷 Устанавливаем ${barcodes.length} штрихкодов`
+            );
+
+            await requestApi(
+                'PUT',
+                `/entity/product/${targetProduct.id}`,
+                {
+                    barcodes
+                }
+            );
+
+        }
+
+        result.copied =
+            barcodes.length;
+
+        console.log(
+            `✅ Штрихкоды скопированы: ${barcodes.join(', ')}`
+        );
+
+    } catch (error) {
+
+        result.error =
+            errorData(error);
+
+        console.error(
+            '❌ Ошибка копирования штрихкодов:',
+            result.error
+        );
+
+    }
+
+    return result;
+
 }
 
 
@@ -1902,7 +2569,15 @@ app.post(
                                 0,
 
                             filesCopied:
-                                0
+                                0,
+
+                            barcodesCopied:
+                                0,
+
+                            barcodes:
+                                extractProductBarcodes(
+                                    exists
+                                )
 
                         });
 
@@ -2003,6 +2678,17 @@ app.post(
                     console.log(
                         `✅ Карточка создана: ${product.id}`
                     );
+
+
+                    // =================================================
+                    // КОПИРУЕМ / ПРОВЕРЯЕМ ШТРИХКОДЫ
+                    // =================================================
+
+                    const barcodeResult =
+                        await copyProductBarcodes(
+                            source,
+                            product
+                        );
 
 
                     // ------------------------------------------------
@@ -2120,6 +2806,15 @@ app.post(
 
                         alreadyExists:
                             false,
+
+                        barcodesCopied:
+                            barcodeResult.copied,
+
+                        barcodes:
+                            barcodeResult.barcodes,
+
+                        barcodeError:
+                            barcodeResult.error,
 
                         // ---------------------------------------------
                         // Сколько изображений скопировано
