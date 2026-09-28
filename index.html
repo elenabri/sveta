@@ -4893,6 +4893,9 @@ async function prepareProcessing() {
 
                             items:
                                 (data.prepared || [])
+                                    .filter(
+                                        x => x.planId
+                                    )
                                     .map(
                                         x => ({
 
@@ -4911,21 +4914,35 @@ async function prepareProcessing() {
             );
 
 
+        const failedPlans =
+            (data.prepared || [])
+                .filter(
+                    x => x.planError
+                );
+
         $('processingResult')
             .innerHTML = `
 
                 <div>
 
-                    Производственное задание создано.
+                    ${order?.document
+                        ? 'Производственное задание создано.'
+                        : 'Производственное задание не создано: нет ни одной успешно подготовленной техкарты.'}
 
                 </div>
 
                 <br>
 
-                ${
-                    (data.prepared || [])
-                        .map(
-                            x => x.planExists
+                ${(data.prepared || [])
+                    .map(
+                        x => x.planError
+                            ? `
+                                <div style="margin-bottom:8px;">
+                                    <b>${esc(x.targetCode || '')}</b>
+                                    — <span style="color:#c62828;">${esc(x.planStatus || 'Ошибка создания техкарты')}</span>
+                                </div>
+                              `
+                            : x.planExists
                                 ? `
                                     <div style="margin-bottom:8px;">
                                         <b>${esc(x.targetCode || '')}</b>
@@ -4938,9 +4955,8 @@ async function prepareProcessing() {
                                         — ${x.quantity} шт.
                                     </div>
                                   `
-                        )
-                        .join('')
-                }
+                    )
+                    .join('')}
 
             `;
 
