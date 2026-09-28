@@ -879,6 +879,88 @@ select {
 
 
 /* ======================================================
+   EXCEL IMPORT
+====================================================== */
+
+.excel-import {
+
+    border:
+        1px dashed #b9bec6;
+
+    background:
+        #fafbfc;
+
+    border-radius:
+        9px;
+
+    padding:
+        12px;
+
+    margin-bottom:
+        12px;
+}
+
+.excel-import-title {
+
+    font-weight:
+        bold;
+
+    margin-bottom:
+        6px;
+}
+
+.excel-import-controls {
+
+    display:
+        flex;
+
+    gap:
+        8px;
+
+    align-items:
+        center;
+
+    flex-wrap:
+        wrap;
+}
+
+.excel-file {
+
+    max-width:
+        100%;
+}
+
+.excel-result {
+
+    margin-top:
+        10px;
+
+    font-size:
+        13px;
+
+    line-height:
+        1.5;
+}
+
+.excel-ok {
+
+    color:
+        #147a35;
+
+    font-weight:
+        bold;
+}
+
+.excel-bad {
+
+    color:
+        #b42318;
+
+    font-weight:
+        bold;
+}
+
+/* ======================================================
    MATERIALS
 ====================================================== */
 
@@ -1124,7 +1206,45 @@ select {
     id="empty"
 >
 
-Выберите группу или подгруппу.
+<div style="font-size:20px;font-weight:bold;margin-bottom:8px;">
+    Выберите товары
+</div>
+
+<div style="color:#666;margin-bottom:14px;">
+    Можно открыть группу слева или сразу загрузить Excel.
+    Для Excel обязательно нужен только столбец
+    <b>«Артикул поставщика»</b>.
+</div>
+
+<div class="excel-import">
+
+    <div class="excel-import-title">
+        Загрузить товары из Excel
+    </div>
+
+    <div class="excel-import-controls">
+
+        <input
+            type="file"
+            id="excelFileEmpty"
+            class="excel-file"
+            accept=".xlsx,.xls"
+        >
+
+        <button
+            onclick="importExcelFrom('excelFileEmpty')"
+        >
+            Загрузить Excel
+        </button>
+
+    </div>
+
+    <div
+        class="excel-result"
+        id="excelResultEmpty"
+    ></div>
+
+</div>
 
 </div>
 
@@ -1217,6 +1337,44 @@ select {
 ====================================================== -->
 
 <div class="panel">
+
+
+<div class="excel-import">
+
+    <div class="excel-import-title">
+        Загрузить товары из Excel
+    </div>
+
+    <div style="color:#666;margin-bottom:8px;">
+        Обязательный столбец:
+        <b>Артикул поставщика</b>.
+        Остальные столбцы могут называться как угодно и могут отсутствовать.
+        Если найдено количество — оно будет использовано, иначе будет 1 шт.
+    </div>
+
+    <div class="excel-import-controls">
+
+        <input
+            type="file"
+            id="excelFile"
+            class="excel-file"
+            accept=".xlsx,.xls"
+        >
+
+        <button
+            onclick="importExcelFrom('excelFile')"
+        >
+            Загрузить и выбрать товары
+        </button>
+
+    </div>
+
+    <div
+        class="excel-result"
+        id="excelResult"
+    ></div>
+
+</div>
 
 
 <div class="product-toolbar">
@@ -1789,7 +1947,13 @@ let state = {
 
     selectedCounterpartyName: '',
 
-    pendingDemandItems: null
+    pendingDemandItems: null,
+
+    productSource:
+        'group',
+
+    excelImport:
+        null
 
 };
 
@@ -2426,6 +2590,9 @@ async function selectGroup(
     state.selectedGroupId =
         groupId;
 
+    state.productSource =
+        'group';
+
 
     renderTree();
 
@@ -2473,6 +2640,9 @@ async function loadProducts() {
 
 
     try {
+
+        state.productSource =
+            'group';
 
         const children =
             $('includeChildren')
@@ -2538,6 +2708,381 @@ async function loadProducts() {
         );
 
     }
+
+}
+
+
+
+/* ======================================================
+   EXCEL IMPORT
+====================================================== */
+
+function setExcelResult(
+    text,
+    type = ''
+) {
+
+    const targets = [
+        $('excelResult'),
+        $('excelResultEmpty')
+    ].filter(Boolean);
+
+    for (
+        const target
+        of targets
+    ) {
+
+        target.innerHTML =
+            text;
+
+        target.className =
+            'excel-result' +
+            (
+                type
+                    ? ` ${type}`
+                    : ''
+            );
+
+    }
+
+}
+
+
+function importExcelFrom(
+    inputId
+) {
+
+    const input =
+        $(inputId);
+
+    if (!input?.files?.length) {
+
+        alert(
+            'Выберите Excel-файл.'
+        );
+
+        return;
+
+    }
+
+    const file =
+        input.files[0];
+
+    const reader =
+        new FileReader();
+
+    setExcelResult(
+        'Загрузка Excel...'
+    );
+
+    reader.onload =
+        async function() {
+
+            try {
+
+                const arrayBuffer =
+                    reader.result;
+
+                const bytes =
+                    new Uint8Array(
+                        arrayBuffer
+                    );
+
+                let binary = '';
+
+                const chunkSize =
+                    0x8000;
+
+                for (
+                    let i = 0;
+                    i < bytes.length;
+                    i += chunkSize
+                ) {
+
+                    binary +=
+                        String.fromCharCode(
+                            ...bytes.subarray(
+                                i,
+                                Math.min(
+                                    i + chunkSize,
+                                    bytes.length
+                                )
+                            )
+                        );
+
+                }
+
+                const base64 =
+                    btoa(binary);
+
+                const data =
+                    await request(
+                        '/api/import-excel',
+                        {
+
+                            method:
+                                'POST',
+
+                            body:
+                                JSON.stringify({
+
+                                    file:
+                                        base64,
+
+                                    filename:
+                                        file.name
+
+                                })
+
+                        }
+                    );
+
+                state.excelImport =
+                    data;
+
+                const matched =
+                    data.matched || [];
+
+                const notFound =
+                    data.notFound || [];
+
+                const duplicates =
+                    data.duplicates || [];
+
+                // ------------------------------------------------
+                // Добавляем найденные товары в общий список.
+                // Дубликаты товаров не добавляем повторно.
+                // ------------------------------------------------
+
+                const productMap =
+                    new Map(
+                        state.products.map(
+                            p => [
+                                p.id,
+                                p
+                            ]
+                        )
+                    );
+
+                for (
+                    const item
+                    of matched
+                ) {
+
+                    productMap.set(
+                        item.product.id,
+                        item.product
+                    );
+
+                }
+
+                state.products =
+                    [
+                        ...productMap.values()
+                    ];
+
+                state.productSource =
+                    'excel';
+
+                state.selectedGroupId =
+                    null;
+
+                $('empty').style.display =
+                    'none';
+
+                $('workspace').style.display =
+                    'block';
+
+                $('groupTitle')
+                    .textContent =
+                        `Товары из Excel: ${file.name}`;
+
+                // ------------------------------------------------
+                // Выбираем найденные товары.
+                // Если один товар встретился несколько раз,
+                // количества складываются.
+                // ------------------------------------------------
+
+                const selectedMap =
+                    new Map(
+                        state.selectedProducts.map(
+                            x => [
+                                x.productId,
+                                Number(
+                                    x.quantity || 0
+                                )
+                            ]
+                        )
+                    );
+
+                for (
+                    const item
+                    of matched
+                ) {
+
+                    selectedMap.set(
+                        item.product.id,
+                        (
+                            selectedMap.get(
+                                item.product.id
+                            ) || 0
+                        ) +
+                        Number(
+                            item.quantity || 1
+                        )
+                    );
+
+                }
+
+                state.selectedProducts =
+                    [...selectedMap.entries()]
+                        .filter(
+                            ([, quantity]) =>
+                                quantity > 0
+                        )
+                        .map(
+                            ([productId, quantity]) => ({
+                                productId,
+                                quantity
+                            })
+                        );
+
+                // ------------------------------------------------
+                // Результат для пользователя.
+                // ------------------------------------------------
+
+                let html = `
+
+                    <div class="excel-ok">
+                        ✓ Найдено товаров: ${matched.length}
+                    </div>
+
+                    <div>
+                        Строк обработано:
+                        ${data.totalRows || 0}
+                    </div>
+
+                    <div>
+                        Лист:
+                        ${esc(data.sheet || '')}
+                    </div>
+
+                `;
+
+                if (
+                    data.quantityColumn
+                ) {
+
+                    html += `
+
+                        <div>
+                            Количество взято из столбца:
+                            <b>${esc(data.quantityColumn)}</b>
+                        </div>
+
+                    `;
+
+                } else {
+
+                    html += `
+
+                        <div>
+                            Столбец количества не найден —
+                            для каждого товара установлено 1 шт.
+                        </div>
+
+                    `;
+
+                }
+
+                if (
+                    notFound.length
+                ) {
+
+                    html += `
+
+                        <div class="excel-bad">
+                            ⚠ Не найдены в МойСклад:
+                            ${notFound.length}
+                        </div>
+
+                        <div>
+                            ${notFound
+                                .slice(0, 20)
+                                .map(
+                                    x =>
+                                        esc(x.article)
+                                )
+                                .join(', ')
+                            }
+                            ${
+                                notFound.length > 20
+                                    ? ' …'
+                                    : ''
+                            }
+                        </div>
+
+                    `;
+
+                }
+
+                if (
+                    duplicates.length
+                ) {
+
+                    html += `
+
+                        <div class="excel-bad">
+                            ⚠ Дублирующиеся артикулы в МойСклад:
+                            ${duplicates.length}
+                        </div>
+
+                        <div>
+                            Такие строки не выбраны автоматически,
+                            чтобы не взять неправильную карточку.
+                        </div>
+
+                    `;
+
+                }
+
+                setExcelResult(
+                    html
+                );
+
+                renderProducts();
+
+                // Прокручиваем к выбранным товарам.
+                $('productTable')
+                    ?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+
+            } catch (error) {
+
+                setExcelResult(
+                    `Ошибка: ${esc(error.message)}`,
+                    'excel-bad'
+                );
+
+            }
+
+        };
+
+    reader.onerror =
+        function() {
+
+            setExcelResult(
+                'Не удалось прочитать Excel-файл.',
+                'excel-bad'
+            );
+
+        };
+
+    reader.readAsArrayBuffer(
+        file
+    );
 
 }
 
