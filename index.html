@@ -4925,24 +4925,19 @@ async function prepareProcessing() {
                 ${
                     (data.prepared || [])
                         .map(
-                            x => `
-
-                                <div>
-
-                                    <b>
-                                        ${esc(
-                                            x.targetCode ||
-                                            ''
-                                        )}
-                                    </b>
-
-                                    —
-                                    ${x.quantity}
-                                    шт.
-
-                                </div>
-
-                            `
+                            x => x.planExists
+                                ? `
+                                    <div style="margin-bottom:8px;">
+                                        <b>${esc(x.targetCode || '')}</b>
+                                        — ${esc(x.planStatus || 'Техкарта уже существует — пропущено')}
+                                    </div>
+                                  `
+                                : `
+                                    <div style="margin-bottom:8px;">
+                                        <b>${esc(x.targetCode || '')}</b>
+                                        — ${x.quantity} шт.
+                                    </div>
+                                  `
                         )
                         .join('')
                 }
