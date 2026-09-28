@@ -1101,9 +1101,13 @@ app.post(
 
                     article,
 
+                    // Для Excel всегда ищем товар с суффиксом -z.
+                    // Если в Excel уже указано -z, второй раз его не добавляем.
                     normalizedArticle:
                         normalizeSupplierArticle(
-                            rawArticle
+                            /-z$/i.test(article)
+                                ? article
+                                : `${article}-z`
                         ),
 
                     quantity:
