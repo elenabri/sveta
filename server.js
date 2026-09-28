@@ -2416,13 +2416,11 @@ app.post(
                             filesCopied:
                                 0,
 
-                            barcodesCopied:
+                            imagesCopied:
                                 0,
 
-                            barcodes:
-                                extractProductBarcodes(
-                                    exists
-                                )
+                            filesCopied:
+                                0
 
                         });
 
@@ -2523,16 +2521,6 @@ app.post(
                     console.log(
                         `✅ Карточка создана: ${product.id}`
                     );
-
-
-                    // =================================================
-                                        // =================================================
-
-                    const barcodeResult =
-                        await copyProductBarcodes(
-                            source,
-                            product
-                        );
 
 
                     // ------------------------------------------------
@@ -2650,15 +2638,6 @@ app.post(
 
                         alreadyExists:
                             false,
-
-                        barcodesCopied:
-                            barcodeResult.copied,
-
-                        barcodes:
-                            barcodeResult.barcodes,
-
-                        barcodeError:
-                            barcodeResult.error,
 
                         // ---------------------------------------------
                         // Сколько изображений скопировано
