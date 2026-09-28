@@ -2887,6 +2887,25 @@ function importExcelFrom(
                 state.selectedGroupId =
                     null;
 
+                // Для Excel остаток всегда запрашиваем именно
+                // по найденным товарам с суффиксом -z.
+                // Исходный артикул из Excel здесь не используется.
+                const excelStockData =
+                    await request(
+                        '/api/stock',
+                        {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                productIds: matched
+                                    .map(item => item.product.id),
+                                storeId: $('store').value || null
+                            })
+                        }
+                    );
+
+                state.stock =
+                    excelStockData.stock || {};
+
                 $('empty').style.display =
                     'none';
 
