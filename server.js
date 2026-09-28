@@ -3345,20 +3345,67 @@ app.post(
                         `Техкарта ${targetCode} отсутствует — создаём`
                     );
 
-                    plan =
-                        await createPlan({
+                    try {
 
-                            product:
-                                target,
+                        plan =
+                            await createPlan({
 
-                            sourceMaterial:
-                                source,
+                                product:
+                                    target,
 
-                            planFolderId,
+                                sourceMaterial:
+                                    source,
 
-                            extraMaterials
+                                planFolderId,
+
+                                extraMaterials
+
+                            });
+
+                    } catch (planError) {
+
+                        // Ошибка одной техкарты НЕ должна останавливать
+                        // обработку остальных товаров. Записываем ошибку
+                        // в результат и переходим к следующему товару.
+                        console.error(
+                            `Ошибка создания техкарты ${targetCode}:`,
+                            errorData(planError)
+                        );
+
+                        prepared.push({
+
+                            sourceId:
+                                source.id,
+
+                            sourceCode,
+
+                            targetId:
+                                target.id,
+
+                            targetCode,
+
+                            quantity:
+                                Number(
+                                    item.quantity ||
+                                    0
+                                ),
+
+                            planId:
+                                null,
+
+                            planExists:
+                                false,
+
+                            planError:
+                                errorData(planError),
+
+                            planStatus:
+                                `Ошибка создания техкарты: ${errorData(planError)}`
 
                         });
+
+                        continue;
+                    }
 
                 } else {
 
