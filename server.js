@@ -4,7 +4,7 @@ const path = require('path');
 const XLSX = require('xlsx');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 80;
 
 const MS_TOKEN = '562d927aad09e55f49bed5ebd3751c7ccfd19a23';
 
@@ -4129,6 +4129,7 @@ app.use(
 
 app.listen(
     PORT,
+    '0.0.0.0',
     () => {
 
         console.log(
